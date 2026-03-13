@@ -450,6 +450,35 @@ export default function TrackTab() {
           >
             MARK DAY OFF · NO WORK
           </motion.button>
+
+          {entries.length > 0 && (() => {
+            const last = [...entries].sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
+            return (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  if (last.type !== 'CALLOUT' && last.reason !== 'OFF') {
+                    setShiftType(last.type)
+                    setStart(last.startTime)
+                    setEnd(last.endTime)
+                    setReason(last.reason)
+                  }
+                }}
+                className="w-full py-3 rounded-2xl font-display font-semibold text-xs tracking-widest transition flex items-center justify-center gap-2"
+                style={{
+                  background: tileBg,
+                  border: tileBorder,
+                  color: isDark ? '#334155' : '#94A3B8',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                DUPLICATE LAST ENTRY
+              </motion.button>
+            )
+          })()}
         </motion.div>
       </motion.div>
 

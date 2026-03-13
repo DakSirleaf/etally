@@ -8,21 +8,20 @@ import type { LogEntry } from '../types'
 interface EntryCardProps {
   entry: LogEntry
   onDelete: (id: number) => void
+  onEdit: (entry: LogEntry) => void
 }
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
-  return d
-    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-    .toUpperCase()
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
 }
 
-export default function EntryCard({ entry, onDelete }: EntryCardProps) {
+export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
   const x = useMotionValue(0)
   const deleteOpacity = useTransform(x, [-90, -30], [1, 0])
   const cardOpacity = useTransform(x, [-110, -80], [0, 1])
   const constraintsRef = useRef(null)
-  const { isDark, surface, surfaceBorder, textPrimary, textSecondary } = useTheme()
+  const { isDark, surface, surfaceBorder, textSecondary } = useTheme()
 
   const isOff = entry.reason === 'OFF'
   const isCallout = entry.type === 'CALLOUT'
@@ -73,8 +72,7 @@ export default function EntryCard({ entry, onDelete }: EntryCardProps) {
         dragElastic={0.08}
         onDragEnd={handleDragEnd}
         style={{
-          x,
-          opacity: cardOpacity,
+          x, opacity: cardOpacity,
           background: surface,
           border: surfaceBorder,
           boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(15,23,42,0.06)',
@@ -82,10 +80,7 @@ export default function EntryCard({ entry, onDelete }: EntryCardProps) {
         className="relative rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing"
       >
         {/* Left accent stripe */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-3xl"
-          style={{ background: accentColor }}
-        />
+        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-3xl" style={{ background: accentColor }} />
 
         <div className="pl-5 pr-4 py-4">
           <div className="flex items-start justify-between mb-2">
@@ -93,46 +88,52 @@ export default function EntryCard({ entry, onDelete }: EntryCardProps) {
               {formatDate(entry.date)}
             </span>
 
-            {isOff ? (
-              <span
-                className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
-                style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#334155' : '#94A3B8' }}
+            <div className="flex items-center gap-2">
+              {/* Type badge */}
+              {isOff ? (
+                <span className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
+                  style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#334155' : '#94A3B8' }}>
+                  DAY OFF
+                </span>
+              ) : isCallout ? (
+                <span className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
+                  style={{ background: isDark ? 'rgba(217,119,6,0.15)' : '#FEF3C7', color: '#D97706' }}>
+                  CALLOUT · {entry.calloutPayType}
+                </span>
+              ) : (
+                <div className="flex gap-1.5 items-center">
+                  {parseFloat(entry.reg) > 0 && (
+                    <span className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
+                      style={{ background: isDark ? 'rgba(37,99,235,0.15)' : '#EFF6FF', color: '#3B82F6' }}>
+                      R {entry.reg}
+                    </span>
+                  )}
+                  {hasOT && (
+                    <span className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
+                      style={{ background: isDark ? 'rgba(219,39,119,0.15)' : '#FDF2F8', color: '#DB2777' }}>
+                      OT {entry.ot}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Pencil edit button */}
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={(e) => { e.stopPropagation(); onEdit(entry) }}
+                className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }}
               >
-                DAY OFF
-              </span>
-            ) : isCallout ? (
-              <span
-                className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
-                style={{ background: isDark ? 'rgba(217,119,6,0.15)' : '#FEF3C7', color: '#D97706' }}
-              >
-                CALLOUT · {entry.calloutPayType}
-              </span>
-            ) : (
-              <div className="flex gap-1.5 items-center">
-                {parseFloat(entry.reg) > 0 && (
-                  <span
-                    className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
-                    style={{ background: isDark ? 'rgba(37,99,235,0.15)' : '#EFF6FF', color: '#3B82F6' }}
-                  >
-                    R {entry.reg}
-                  </span>
-                )}
-                {hasOT && (
-                  <span
-                    className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
-                    style={{ background: isDark ? 'rgba(219,39,119,0.15)' : '#FDF2F8', color: '#DB2777' }}
-                  >
-                    OT {entry.ot}
-                  </span>
-                )}
-              </div>
-            )}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke={isDark ? '#475569' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke={isDark ? '#475569' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </motion.button>
+            </div>
           </div>
 
           {!isOff && (
-            <p className="text-[11px] font-body leading-relaxed" style={{ color: textSecondary }}>
-              {detail}
-            </p>
+            <p className="text-[11px] font-body leading-relaxed" style={{ color: textSecondary }}>{detail}</p>
           )}
         </div>
       </motion.div>
