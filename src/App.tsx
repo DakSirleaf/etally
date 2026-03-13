@@ -5,8 +5,8 @@ import LogTab from './components/LogTab'
 import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
+import ReportModal from './components/ReportModal'
 import { useStore } from './store/useStore'
-import { getCurrentPayPeriod } from './lib/payPeriod'
 
 type Tab = 'track' | 'log'
 
@@ -14,12 +14,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('track')
   const [direction, setDirection] = useState(1)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const role = useStore((s) => s.role)
+  const entries = useStore((s: any) => s.entries)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
   const isDark = theme === 'dark'
-
-  const currentPeriod = getCurrentPayPeriod()
 
   const handleTabChange = (newTab: Tab) => {
     setDirection(newTab === 'log' ? 1 : -1)
@@ -70,7 +70,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.13 }}
             >
-              Current Pay Period: {new Date(currentPeriod.start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(currentPeriod.end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              A time tracker for eCats
             </motion.p>
           </div>
 
@@ -109,6 +109,23 @@ export default function App() {
               )}
             </motion.button>
 
+            {/* Export button */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setReportOpen(true)}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.25, type: 'spring', stiffness: 320, damping: 28 }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: entries.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.07)' }}
+              aria-label="Export report"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={entries.length > 0 ? '#10B981' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10l5 5 5-5M12 15V3" stroke={entries.length > 0 ? '#10B981' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </motion.button>
+
             {/* About button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -142,7 +159,7 @@ export default function App() {
             transition={{ type: 'tween', duration: 0.22, ease: 'easeInOut' }}
             className="absolute inset-0"
           >
-            {tab === 'track' ? <TrackTab /> : <LogTab />}
+            {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={() => handleTabChange('track')} />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -152,6 +169,14 @@ export default function App() {
 
       {/* About sheet */}
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        entries={entries}
+        role={role}
+      />
     </div>
   )
 }
