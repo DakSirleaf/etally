@@ -31,6 +31,10 @@ export function calculateHours(
   let ot  = 0
   let normalEnd = '--'
 
+  if (shiftType === 'CALLOUT') {
+    return { reg: '0.00', ot: '0.00', normalEnd: '--' }
+  }
+
   if (shiftType === 'REG') {
     const paidMins = Math.max(0, clockMins - BREAK_MINS)
     reg = paidMins >= REG_CAP_MINS ? 8.0 : paidMins / 60

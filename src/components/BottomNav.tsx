@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useTheme } from '../lib/useTheme'
 
 type Tab = 'track' | 'log'
 
@@ -22,6 +23,7 @@ const LogIcon = ({ active }: { active: boolean }) => (
 )
 
 export default function BottomNav({ active, setActive }: BottomNavProps) {
+  const { isDark, navBg, navBorder } = useTheme()
   const tabs: { id: Tab; label: string }[] = [
     { id: 'track', label: 'Track' },
     { id: 'log', label: 'Log' },
@@ -29,12 +31,17 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
 
   return (
     <nav
-      className="bg-white border-t border-slate-100 flex-shrink-0 flex"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="flex-shrink-0 flex"
+      style={{
+        background: navBg,
+        borderTop: `1px solid ${navBorder}`,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
       {tabs.map((tab) => {
         const isActive = active === tab.id
         const color = tab.id === 'track' ? '#2563EB' : '#DB2777'
+        const inactiveColor = isDark ? '#1E293B' : '#CBD5E1'
 
         return (
           <motion.button
@@ -51,15 +58,12 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
                 transition={{ type: 'spring', stiffness: 500, damping: 42 }}
               />
             )}
-            <span
-              style={{ color: isActive ? color : '#CBD5E1' }}
-              className="transition-colors duration-150"
-            >
+            <span style={{ color: isActive ? color : inactiveColor }} className="transition-colors duration-150">
               {tab.id === 'track' ? <TrackIcon active={isActive} /> : <LogIcon active={isActive} />}
             </span>
             <span
               className="text-[10px] font-display font-bold tracking-widest transition-colors duration-150"
-              style={{ color: isActive ? color : '#CBD5E1' }}
+              style={{ color: isActive ? color : inactiveColor }}
             >
               {tab.label.toUpperCase()}
             </span>
