@@ -26,7 +26,7 @@ function detectCalloutStreak(entries: LogEntry[]): boolean {
 
 type ClearStep = 'idle' | 'warn' | 'options'
 
-export default function LogTab() {
+export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () => void }) {
   const entries = useStore((s: any) => s.entries)
   const removeEntry = useStore((s: any) => s.removeEntry)
   const clearAll = useStore((s: any) => s.clearAll)
@@ -78,18 +78,31 @@ export default function LogTab() {
     URL.revokeObjectURL(url)
     clearAll()
     setClearStep('idle')
+    onNavigateToTrack?.()
   }
 
   const handleSnapshotAndClear = () => {
     saveSnapshot(`Snapshot ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
     clearAll()
     setClearStep('idle')
+    onNavigateToTrack?.()
   }
 
   return (
     <div className="px-4 pt-4 pb-32">
 
-      {/* Callout streak warning */}
+      {/* Back to Track button */}
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onNavigateToTrack?.()}
+        className="flex items-center gap-1.5 mb-4 font-display font-bold text-[10px] tracking-widest"
+        style={{ color: labelColor }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        TRACK
+      </motion.button>
       <AnimatePresence>
         {hasStreak && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -259,7 +272,7 @@ export default function LogTab() {
                   style={{ background: isDark ? 'rgba(37,99,235,0.1)' : '#EFF6FF', border: isDark ? '1px solid rgba(37,99,235,0.2)' : '1px solid #BFDBFE', color: '#3B82F6' }}>
                   SAVE SNAPSHOT THEN CLEAR
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { clearAll(); setClearStep('idle') }}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { clearAll(); setClearStep('idle'); onNavigateToTrack?.() }}
                   className="w-full py-3 rounded-xl font-display font-bold text-[10px] tracking-widest"
                   style={{ color: '#EF4444' }}>
                   CLEAR WITHOUT SAVING

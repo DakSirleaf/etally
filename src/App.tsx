@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
 import { useStore } from './store/useStore'
+import { getCurrentPayPeriod } from './lib/payPeriod'
 
 type Tab = 'track' | 'log'
 
@@ -17,6 +18,8 @@ export default function App() {
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
   const isDark = theme === 'dark'
+
+  const currentPeriod = getCurrentPayPeriod()
 
   const handleTabChange = (newTab: Tab) => {
     setDirection(newTab === 'log' ? 1 : -1)
@@ -67,7 +70,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.13 }}
             >
-              A time tracker for eCats
+              Current Pay Period: {new Date(currentPeriod.start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(currentPeriod.end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </motion.p>
           </div>
 
