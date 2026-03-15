@@ -289,7 +289,7 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
       )}
 
       <ReportModal isOpen={reportOpen} onClose={() => setReportOpen(false)} entries={entries} role={role} />
-      <EditEntrySheet entry={editEntry} onClose={() => setEditEntry(null)} />
+      {editEntry && <EditEntrySheet entry={editEntry} onClose={() => setEditEntry(null)} />}
     </div>
   )
 }

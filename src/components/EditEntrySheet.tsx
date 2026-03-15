@@ -9,7 +9,7 @@ import DatePickerSheet from './DatePickerSheet'
 import type { LogEntry, ShiftType, CalloutPayType, StaffRole } from '../types'
 
 interface Props {
-  entry: LogEntry | null
+  entry: LogEntry
   onClose: () => void
 }
 
@@ -36,16 +36,14 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
   const role = useStore((s: any) => s.role) as StaffRole | null
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor, toggleBg, selectColor } = useTheme()
 
-  const [shiftType, setShiftType] = useState<ShiftType>(entry?.type ?? 'REG')
-  const [date, setDate] = useState(entry?.date ?? '')
-  const [start, setStart] = useState(entry?.startTime ?? '22:45')
-  const [end, setEnd] = useState(entry?.endTime ?? '07:15')
-  const [reason, setReason] = useState(entry?.reason ?? 'Standard Shift')
-  const [calloutPayType, setCalloutPayType] = useState<CalloutPayType>(entry?.calloutPayType ?? 'Sick Time')
+  const [shiftType, setShiftType] = useState<ShiftType>(entry.type ?? 'REG')
+  const [date, setDate] = useState(entry.date ?? '')
+  const [start, setStart] = useState(entry.startTime ?? '22:45')
+  const [end, setEnd] = useState(entry.endTime ?? '07:15')
+  const [reason, setReason] = useState(entry.reason ?? 'Standard Shift')
+  const [calloutPayType, setCalloutPayType] = useState<CalloutPayType>(entry.calloutPayType ?? 'Sick Time')
   const [activePicker, setActivePicker] = useState<'start'|'end'|null>(null)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
-
-  if (!entry) return null
 
   const availablePayTypes = role ? CALLOUT_PAY_TYPES[role] : ['Sick Time', 'AL Day']
   const dateDisplay = formatDateDisplay(date)
