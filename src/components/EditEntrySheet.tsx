@@ -21,6 +21,7 @@ const CALLOUT_PAY_TYPES: Record<StaffRole, CalloutPayType[]> = {
   RN:  ['Sick Time', 'AL Day'],
   HST: ['Sick Time', 'Vacation Time', 'AL Day'],
   HSA: ['Sick Time', 'Vacation Time', 'AL Day'],
+  LPN: ['Sick Time', 'Vacation Time', 'AL Day'],
 }
 
 function formatDateDisplay(dateStr: string) {

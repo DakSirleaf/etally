@@ -10,6 +10,7 @@ interface AboutSheetProps {
 
 const roles: { role: StaffRole; label: string; color: string }[] = [
   { role: 'RN', label: 'RN', color: '#3B82F6' },
+  { role: 'LPN', label: 'LPN', color: '#6366F1' },
   { role: 'HST', label: 'HST', color: '#8B5CF6' },
   { role: 'HSA', label: 'HSA', color: '#06B6D4' },
 ]

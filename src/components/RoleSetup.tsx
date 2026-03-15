@@ -10,6 +10,12 @@ const roles: { role: StaffRole; label: string; desc: string; color: string }[] =
     color: '#3B82F6',
   },
   {
+    role: 'LPN',
+    label: 'LPN',
+    desc: 'Licensed Practical Nurse — Callout coverage: Sick Time, Vacation Time, or AL Day',
+    color: '#6366F1',
+  },
+  {
     role: 'HST',
     label: 'HST',
     desc: 'Health Services Technician — Callout coverage: Sick Time, Vacation Time, or AL Day',

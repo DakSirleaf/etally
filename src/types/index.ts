@@ -1,5 +1,5 @@
 export type ShiftType = 'REG' | 'OT' | 'CALLOUT'
-export type StaffRole = 'RN' | 'HST' | 'HSA'
+export type StaffRole = 'RN' | 'HST' | 'HSA' | 'LPN'
 export type CalloutPayType = 'Sick Time' | 'Vacation Time' | 'AL Day'
 export type Theme = 'dark' | 'light'
 
