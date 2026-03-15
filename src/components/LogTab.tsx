@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import { useTheme } from '../lib/useTheme'
@@ -41,6 +41,14 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
   const [clearStep, setClearStep] = useState<ClearStep>('idle')
   const [showSnapshots, setShowSnapshots] = useState(false)
 
+  // Reset all local state then navigate home
+  const goHome = () => {
+    setClearStep('idle')
+    setReportOpen(false)
+    setEditEntry(null)
+    onNavigateToTrack?.()
+  }
+
   const currentYear = new Date().getFullYear()
   const calloutEntries = entries.filter((e: LogEntry) => e.type === 'CALLOUT')
   const alUsed = entries.filter((e: LogEntry) => e.calloutPayType === 'AL Day' && e.date.startsWith(String(currentYear))).length
@@ -78,14 +86,14 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
     URL.revokeObjectURL(url)
     clearAll()
     setClearStep('idle')
-    onNavigateToTrack?.()
+    goHome()
   }
 
   const handleSnapshotAndClear = () => {
     saveSnapshot(`Snapshot ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
     clearAll()
     setClearStep('idle')
-    onNavigateToTrack?.()
+    goHome()
   }
 
   return (
@@ -94,7 +102,7 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
       {/* Back to Track button */}
       <motion.button
         whileTap={{ scale: 0.97 }}
-        onClick={() => onNavigateToTrack?.()}
+        onClick={() => goHome()}
         className="flex items-center gap-1.5 mb-4 font-display font-bold text-[10px] tracking-widest"
         style={{ color: labelColor }}
       >
@@ -272,7 +280,7 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
                   style={{ background: isDark ? 'rgba(37,99,235,0.1)' : '#EFF6FF', border: isDark ? '1px solid rgba(37,99,235,0.2)' : '1px solid #BFDBFE', color: '#3B82F6' }}>
                   SAVE SNAPSHOT THEN CLEAR
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { clearAll(); setClearStep('idle'); onNavigateToTrack?.() }}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { clearAll(); setClearStep('idle'); goHome() }}
                   className="w-full py-3 rounded-xl font-display font-bold text-[10px] tracking-widest"
                   style={{ color: '#EF4444' }}>
                   CLEAR WITHOUT SAVING
@@ -288,7 +296,7 @@ export default function LogTab({ onNavigateToTrack }: { onNavigateToTrack?: () =
         </div>
       )}
 
-      <ReportModal isOpen={reportOpen} onClose={() => setReportOpen(false)} entries={entries} role={role} />
+      <ReportModal isOpen={reportOpen} onClose={() => { setReportOpen(false); goHome() }} entries={entries} role={role} />
       {editEntry && <EditEntrySheet entry={editEntry} onClose={() => setEditEntry(null)} />}
     </div>
   )

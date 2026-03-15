@@ -145,19 +145,9 @@ export default function App() {
 
       {/* Tab content */}
       <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={tab}
-            custom={direction}
-            initial={{ x: direction > 0 ? 40 : -40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction > 0 ? -40 : 40, opacity: 0 }}
-            transition={{ type: 'tween', duration: 0.22, ease: 'easeInOut' }}
-            className="absolute inset-0 overflow-y-auto"
-          >
-            {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={goHome} />}
-          </motion.div>
-        </AnimatePresence>
+        <div className="absolute inset-0 overflow-y-auto">
+          {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={goHome} />}
+        </div>
       </main>
 
       {/* Bottom nav */}
