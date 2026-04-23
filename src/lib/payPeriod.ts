@@ -60,3 +60,38 @@ export function getPreviousPayPeriod(): PayPeriod {
     end: toYMD(endFriday),
   }
 }
+
+export function getPayPeriodForDate(dateStr: string): PayPeriod {
+  const date = new Date(dateStr + 'T00:00:00')
+  date.setHours(0, 0, 0, 0)
+  const msPerPeriod = 14 * 24 * 60 * 60 * 1000
+  const diff = Math.round((date.getTime() - ANCHOR_END.getTime()) / msPerPeriod)
+  const endFriday = new Date(ANCHOR_END)
+  endFriday.setDate(endFriday.getDate() + diff * 14)
+  if (date > endFriday) endFriday.setDate(endFriday.getDate() + 14)
+  const start = getPeriodStart(endFriday)
+  return {
+    label: 'Pay Period',
+    start: toYMD(start),
+    end: toYMD(endFriday),
+  }
+}
+
+export function isDateInPeriod(dateStr: string, period: PayPeriod): boolean {
+  return dateStr >= period.start && dateStr <= period.end
+}
+
+export function periodId(period: PayPeriod): string {
+  return `${period.start}_${period.end}`
+}
+
+export function formatPeriodRange(period: PayPeriod): string {
+  const s = new Date(period.start + 'T00:00:00')
+  const e = new Date(period.end + 'T00:00:00')
+  const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()
+  const startStr = s.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const endStr = sameMonth
+    ? e.toLocaleDateString('en-US', { day: 'numeric', year: 'numeric' })
+    : e.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return `${startStr} – ${endStr}`
+}

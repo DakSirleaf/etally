@@ -15,3 +15,14 @@ export interface LogEntry {
   normalEnd: string
   calloutPayType?: CalloutPayType
 }
+
+export interface VaultPeriod {
+  id: string // "YYYY-MM-DD_YYYY-MM-DD"
+  start: string
+  end: string
+  closedAt: string // ISO
+  entries: LogEntry[]
+  totals: { reg: number; ot: number; shifts: number; callouts: number }
+  edited?: boolean
+  label?: string
+}

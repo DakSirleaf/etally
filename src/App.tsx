@@ -6,7 +6,11 @@ import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
 import ReportModal from './components/ReportModal'
+import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
+import VaultSheet from './components/VaultSheet'
 import { useStore } from './store/useStore'
+import { useAutoArchive } from './lib/useAutoArchive'
+import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 
 type Tab = 'track' | 'log'
 
@@ -15,11 +19,16 @@ export default function App() {
   const [direction, setDirection] = useState(1)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
+  const [vaultOpen, setVaultOpen] = useState(false)
+
   const role = useStore((s) => s.role)
   const entries = useStore((s: any) => s.entries)
+  const vault = useStore((s) => s.vault)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
   const isDark = theme === 'dark'
+
+  useAutoArchive()
 
   const handleTabChange = (newTab: Tab) => {
     setDirection(newTab === 'log' ? 1 : -1)
@@ -31,6 +40,8 @@ export default function App() {
   const mainBg = isDark
     ? 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)'
     : '#F1F5F9'
+
+  const periodLabel = formatPeriodRange(getCurrentPayPeriod())
 
   return (
     <div
@@ -73,7 +84,7 @@ export default function App() {
               className="font-body text-[11px] mt-0.5 tracking-wide"
               style={{ color: isDark ? '#3B82F6' : '#64748B' }}
             >
-              A time tracker for eCats
+              {periodLabel}
             </p>
           </motion.button>
 
@@ -100,6 +111,32 @@ export default function App() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
+              )}
+            </motion.button>
+
+            {/* Vault button — between theme toggle and export */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setVaultOpen(true)}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.24, type: 'spring', stiffness: 320, damping: 28 }}
+              className="relative w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: vault.length > 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.07)' }}
+              aria-label="Open Vault"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 8v13H3V8" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M23 3H1v5h22V3z" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10 12h4" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              {vault.length > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full font-display font-bold text-white"
+                  style={{ background: '#F59E0B', fontSize: '8px', minWidth: '16px', height: '16px', padding: '0 3px' }}
+                >
+                  {vault.length}
+                </span>
               )}
             </motion.button>
 
@@ -163,6 +200,12 @@ export default function App() {
         entries={entries}
         role={role}
       />
+
+      {/* Vault sheet */}
+      <VaultSheet isOpen={vaultOpen} onClose={() => setVaultOpen(false)} />
+
+      {/* Migration prompt — shown on first launch with existing data */}
+      <LegacyMigrationPrompt />
     </div>
   )
 }
