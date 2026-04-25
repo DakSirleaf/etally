@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { useTheme } from '../lib/useTheme'
 
-type Tab = 'track' | 'log'
+type Tab = 'track' | 'log' | 'cal'
 
 interface BottomNavProps {
   active: Tab
@@ -22,12 +22,29 @@ const LogIcon = ({ active }: { active: boolean }) => (
   </svg>
 )
 
+const CalIcon = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.5} />
+    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+    <path d="M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+  </svg>
+)
+
+const TAB_COLORS: Record<Tab, string> = {
+  track: '#2563EB',
+  log: '#DB2777',
+  cal: '#7C3AED',
+}
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'track', label: 'Track' },
+  { id: 'log', label: 'Log' },
+  { id: 'cal', label: 'Cal' },
+]
+
 export default function BottomNav({ active, setActive }: BottomNavProps) {
   const { isDark, navBg, navBorder } = useTheme()
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'track', label: 'Track' },
-    { id: 'log', label: 'Log' },
-  ]
+  const inactiveColor = isDark ? '#1E293B' : '#CBD5E1'
 
   return (
     <nav
@@ -38,10 +55,9 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
-      {tabs.map((tab) => {
+      {TABS.map((tab) => {
         const isActive = active === tab.id
-        const color = tab.id === 'track' ? '#2563EB' : '#DB2777'
-        const inactiveColor = isDark ? '#1E293B' : '#CBD5E1'
+        const color = TAB_COLORS[tab.id]
 
         return (
           <motion.button
@@ -59,7 +75,13 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
               />
             )}
             <span style={{ color: isActive ? color : inactiveColor }} className="transition-colors duration-150">
-              {tab.id === 'track' ? <TrackIcon active={isActive} /> : <LogIcon active={isActive} />}
+              {tab.id === 'track' ? (
+                <TrackIcon active={isActive} />
+              ) : tab.id === 'log' ? (
+                <LogIcon active={isActive} />
+              ) : (
+                <CalIcon active={isActive} />
+              )}
             </span>
             <span
               className="text-[10px] font-display font-bold tracking-widest transition-colors duration-150"

@@ -1,4 +1,5 @@
 import type { PayPeriod } from './payPeriod'
+import type { ScheduleDay } from '../types'
 
 export interface Holiday {
   date: string // YYYY-MM-DD
@@ -78,6 +79,24 @@ export function getDeadlineStatus(deadline: Date): DeadlineStatus {
   if (diffHrs <= 24) return 'critical'
   if (diffHrs <= 48) return 'warning'
   return 'upcoming'
+}
+
+export function getPreApprovedOTAfterDeadline(
+  schedule: ScheduleDay[],
+  period: PayPeriod
+): ScheduleDay[] {
+  const { isHolidayWeek, deadline } = getEcatsDeadline(period)
+  if (!isHolidayWeek) return []
+  const dl = deadline
+  const deadlineDateStr = `${dl.getFullYear()}-${String(dl.getMonth() + 1).padStart(2, '0')}-${String(dl.getDate()).padStart(2, '0')}`
+  return schedule.filter(
+    (day) =>
+      day.type === 'ot' &&
+      day.isPreApprovedOT === true &&
+      day.date > deadlineDateStr &&
+      day.date >= period.start &&
+      day.date <= period.end
+  )
 }
 
 export function formatDeadlineDate(date: Date): string {

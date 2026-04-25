@@ -64,6 +64,8 @@ export default function TrackTab() {
   const addEntry = useStore((s: any) => s.addEntry)
   const role = useStore((s: any) => s.role) as StaffRole | null
   const entries = useStore((s: any) => s.entries)
+  const pendingTrackDate = useStore((s: any) => s.pendingTrackDate) as string | null
+  const setPendingTrackDate = useStore((s: any) => s.setPendingTrackDate)
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor, toggleBg, selectColor } = useTheme()
 
   const [shiftType, setShiftType] = useState<ShiftType>('REG')
@@ -92,6 +94,13 @@ export default function TrackTab() {
   }, [start, end, shiftType])
 
   useEffect(() => { recompute() }, [recompute])
+
+  useEffect(() => {
+    if (pendingTrackDate) {
+      setDate(pendingTrackDate)
+      setPendingTrackDate(null)
+    }
+  }, [pendingTrackDate, setPendingTrackDate])
 
   // Reset callout pay type when AL Days run out
   useEffect(() => {

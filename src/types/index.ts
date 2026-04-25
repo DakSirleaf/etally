@@ -3,6 +3,17 @@ export type StaffRole = 'RN' | 'HST' | 'HSA' | 'LPN'
 export type CalloutPayType = 'Sick Time' | 'Vacation Time' | 'AL Day'
 export type Theme = 'dark' | 'light'
 
+export type DayType = 'scheduled' | 'ot' | 'callout' | 'vacation' | 'aspirational' | 'off' | 'holiday'
+
+export interface ScheduleDay {
+  date: string // YYYY-MM-DD
+  type: DayType
+  note?: string
+  startTime?: string
+  endTime?: string
+  isPreApprovedOT?: boolean
+}
+
 export interface LogEntry {
   id: number
   date: string

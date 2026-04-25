@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { LogEntry, StaffRole, Theme, VaultPeriod } from '../types'
+import type { LogEntry, StaffRole, Theme, VaultPeriod, ScheduleDay } from '../types'
 import {
   getCurrentPayPeriod,
   getPayPeriodForDate,
@@ -32,6 +32,8 @@ interface StoreState {
   migrationHandled: boolean
   role: StaffRole | null
   theme: Theme
+  schedule: ScheduleDay[]
+  pendingTrackDate: string | null
 
   addEntry: (entry: LogEntry) => void
   removeEntry: (id: number) => void
@@ -47,6 +49,11 @@ interface StoreState {
   deleteVaultPeriod: (id: string) => void
   moveAllActiveToLegacy: () => void
   setMigrationHandled: (value: boolean) => void
+
+  setScheduleDay: (day: ScheduleDay) => void
+  removeScheduleDay: (date: string) => void
+  getScheduleDay: (date: string) => ScheduleDay | undefined
+  setPendingTrackDate: (date: string | null) => void
 }
 
 export const useStore = create<StoreState>()(
@@ -58,6 +65,8 @@ export const useStore = create<StoreState>()(
       migrationHandled: false,
       role: null,
       theme: 'dark',
+      schedule: [],
+      pendingTrackDate: null,
 
       addEntry: (entry) =>
         set((state) => ({ entries: [...state.entries, entry] })),
@@ -162,16 +171,37 @@ export const useStore = create<StoreState>()(
       },
 
       setMigrationHandled: (value) => set({ migrationHandled: value }),
+
+      setScheduleDay: (day) =>
+        set((state) => ({
+          schedule: state.schedule.some((d) => d.date === day.date)
+            ? state.schedule.map((d) => (d.date === day.date ? day : d))
+            : [...state.schedule, day],
+        })),
+
+      removeScheduleDay: (date) =>
+        set((state) => ({ schedule: state.schedule.filter((d) => d.date !== date) })),
+
+      getScheduleDay: (date) => get().schedule.find((d) => d.date === date),
+
+      setPendingTrackDate: (date) => set({ pendingTrackDate: date }),
     }),
     {
       name: 'etally-v1',
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           return {
             ...persistedState,
             vault: persistedState.vault ?? [],
             migrationHandled: persistedState.migrationHandled ?? false,
+          }
+        }
+        if (version < 3) {
+          return {
+            ...persistedState,
+            schedule: [],
+            pendingTrackDate: null,
           }
         }
         return persistedState as StoreState

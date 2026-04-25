@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TrackTab from './components/TrackTab'
 import LogTab from './components/LogTab'
+import CalendarTab from './components/CalendarTab'
 import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
@@ -12,7 +13,9 @@ import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 
-type Tab = 'track' | 'log'
+type Tab = 'track' | 'log' | 'cal'
+
+const TAB_ORDER: Tab[] = ['track', 'log', 'cal']
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('track')
@@ -31,7 +34,7 @@ export default function App() {
   useAutoArchive()
 
   const handleTabChange = (newTab: Tab) => {
-    setDirection(newTab === 'log' ? 1 : -1)
+    setDirection(TAB_ORDER.indexOf(newTab) > TAB_ORDER.indexOf(tab) ? 1 : -1)
     setTab(newTab)
   }
 
@@ -183,7 +186,9 @@ export default function App() {
       {/* Tab content */}
       <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
         <div className="absolute inset-0 overflow-y-auto">
-          {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={goHome} />}
+          {tab === 'track' && <TrackTab />}
+          {tab === 'log' && <LogTab onNavigateToTrack={goHome} />}
+          {tab === 'cal' && <CalendarTab onNavigateToTrack={goHome} />}
         </div>
       </main>
 
