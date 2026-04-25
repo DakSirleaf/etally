@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '../lib/useTheme'
 import { useStore } from '../store/useStore'
@@ -15,9 +15,19 @@ const TYPE_COLORS: Record<string, string> = {
   vacation: '#7C3AED',
   aspirational: '#7C3AED',
   off: '#475569',
+  holiday: '#F59E0B',
 }
 
-// Anchor Saturday (start of the March 7-20 period) for band alternation
+const TYPE_ABBREV: Record<string, string> = {
+  scheduled: 'SCH',
+  ot: 'OT',
+  callout: 'CALLOUT',
+  vacation: 'VAC',
+  aspirational: 'REQ OFF',
+  off: 'OFF',
+  holiday: 'HOL',
+}
+
 const BAND_ANCHOR_MS = new Date('2026-03-07T00:00:00').getTime()
 const MS_PER_PERIOD = 14 * 24 * 60 * 60 * 1000
 
@@ -37,7 +47,7 @@ interface CalendarTabProps {
 }
 
 export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
-  const { isDark, textPrimary, textSecondary, labelColor, surface, surfaceBorder } = useTheme()
+  const { isDark, textPrimary, textSecondary, labelColor } = useTheme()
   const entries = useStore((s: any) => s.entries) as LogEntry[]
   const schedule = useStore((s: any) => s.schedule) as ScheduleDay[]
 
@@ -48,6 +58,11 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [photoParserOpen, setPhotoParserOpen] = useState(false)
+
+  const goToToday = useCallback(() => {
+    setViewYear(today.getFullYear())
+    setViewMonth(today.getMonth())
+  }, [today.getFullYear(), today.getMonth()])
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1) }
@@ -64,10 +79,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
     const total = Math.ceil((first + last) / 7) * 7
     return Array.from({ length: total }, (_, i) => {
       const d = new Date(viewYear, viewMonth, i - first + 1)
-      return {
-        dateStr: toDateStr(d),
-        inMonth: d.getMonth() === viewMonth,
-      }
+      return { dateStr: toDateStr(d), inMonth: d.getMonth() === viewMonth }
     })
   }, [viewYear, viewMonth])
 
@@ -105,67 +117,94 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
     return map
   }, [schedule])
 
+  const isViewingThisMonth =
+    viewYear === today.getFullYear() && viewMonth === today.getMonth()
   const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long' })
 
   return (
     <div className="flex flex-col pb-6">
-      <div className="px-4 pt-3 flex flex-col gap-3">
+      <div className="px-4 pt-3">
 
-        {/* Month nav header */}
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={prevMonth}
               className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: surface, border: surfaceBorder }}
+              style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M15 18l-6-6 6-6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
-            <span className="text-base font-display font-bold min-w-[130px] text-center" style={{ color: textPrimary }}>
+            <span
+              className="text-[15px] font-display font-bold min-w-[120px] text-center"
+              style={{ color: textPrimary }}
+            >
               {monthName} {viewYear}
             </span>
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={nextMonth}
               className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: surface, border: surfaceBorder }}
+              style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M9 18l6-6-6-6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
           </div>
 
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setPhotoParserOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
-            style={{ background: surface, border: surfaceBorder }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="12" cy="13" r="4" stroke="#7C3AED" strokeWidth="1.8" />
-            </svg>
-            <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: '#7C3AED' }}>IMPORT</span>
-          </motion.button>
+          <div className="flex items-center gap-1.5">
+            {!isViewingThisMonth && (
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={goToToday}
+                className="px-3 h-8 rounded-xl font-display font-bold text-[9px] tracking-widest"
+                style={{ background: 'rgba(37,99,235,0.12)', color: '#3B82F6' }}
+              >
+                TODAY
+              </motion.button>
+            )}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setPhotoParserOpen(true)}
+              className="flex items-center gap-1 px-3 h-8 rounded-xl"
+              style={{ background: 'rgba(124,58,237,0.1)' }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="13" r="4" stroke="#7C3AED" strokeWidth="1.8" />
+              </svg>
+              <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: '#7C3AED' }}>
+                IMPORT
+              </span>
+            </motion.button>
+          </div>
         </div>
 
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-            <div key={i} className="text-center text-[9px] font-display font-bold py-0.5" style={{ color: labelColor }}>
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d, i) => (
+            <div key={i} className="text-center text-[8px] font-display font-bold py-1" style={{ color: labelColor }}>
               {d}
             </div>
           ))}
         </div>
 
-        {/* Calendar grid */}
+        {/* Calendar grid — 52px cells */}
         <div className="grid grid-cols-7 gap-0.5">
           {cells.map(({ dateStr, inMonth }, idx) => {
-            if (!inMonth) return <div key={idx} className="aspect-square" />
+            if (!inMonth) {
+              return (
+                <div
+                  key={idx}
+                  className="rounded-xl"
+                  style={{ height: '52px', background: isDark ? 'rgba(255,255,255,0.01)' : 'transparent' }}
+                />
+              )
+            }
 
             const dayNum = parseInt(dateStr.split('-')[2])
             const isToday = dateStr === todayStr
@@ -176,109 +215,145 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
             const band = getPeriodBand(dateStr)
 
             const bandBg = band === 0
-              ? isDark ? 'rgba(255,255,255,0.03)' : 'rgba(15,23,42,0.03)'
-              : isDark ? 'rgba(255,255,255,0.065)' : 'rgba(15,23,42,0.06)'
+              ? isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)'
+              : isDark ? 'rgba(37,99,235,0.06)' : 'rgba(37,99,235,0.04)'
 
-            const typeColor = schedDay ? TYPE_COLORS[schedDay.type] : undefined
+            const cellBg = isToday
+              ? isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.1)'
+              : holiday
+              ? isDark ? 'rgba(245,158,11,0.07)' : 'rgba(245,158,11,0.06)'
+              : bandBg
 
-            const loggedHrs =
+            const loggedReg =
               entry && entry.type !== 'CALLOUT' && entry.reason !== 'OFF'
                 ? parseFloat(entry.reg)
                 : 0
+            const hasLoggedEntry = !!entry
 
             return (
               <motion.button
                 key={dateStr}
-                whileTap={{ scale: 0.88 }}
+                whileTap={{ scale: 0.86 }}
                 onClick={() => setSelectedDate(dateStr)}
-                className="aspect-square rounded-xl flex flex-col items-center justify-center gap-px relative overflow-hidden"
-                style={{ background: bandBg }}
+                className="relative rounded-xl flex flex-col justify-between overflow-hidden"
+                style={{ height: '52px', background: cellBg, padding: '5px 5px 4px' }}
               >
-                {/* Today ring */}
-                {isToday && (
-                  <div
-                    className="absolute inset-0.5 rounded-[9px] border-2 pointer-events-none"
-                    style={{ borderColor: 'rgba(255,255,255,0.55)' }}
-                  />
-                )}
-                {/* ECATS deadline ring */}
+                {/* ECATS deadline: red bottom strip */}
                 {isDeadline && (
                   <div
-                    className="absolute inset-0 rounded-xl border-2 border-red-500 pointer-events-none"
-                    style={{ opacity: isToday ? 0.7 : 1 }}
+                    className="absolute bottom-0 inset-x-0 h-[2.5px]"
+                    style={{ background: 'rgba(239,68,68,0.75)' }}
                   />
                 )}
 
-                {/* Date number */}
-                <span
-                  className="text-[11px] font-display font-bold z-10 leading-none"
-                  style={{ color: isToday ? 'white' : textPrimary }}
-                >
-                  {dayNum}
-                </span>
-
-                {/* Indicator row */}
-                <div className="flex items-center gap-px z-10">
-                  {schedDay && (
+                {/* Top row: date number */}
+                <div className="flex items-start justify-between">
+                  {isToday ? (
                     <div
-                      className="w-1 h-1 rounded-full"
-                      style={{
-                        background: schedDay.type === 'aspirational' ? 'transparent' : typeColor,
-                        outline: schedDay.type === 'aspirational' ? `1.5px dashed ${typeColor}` : 'none',
-                        outlineOffset: '1px',
-                      }}
-                    />
+                      className="w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: '#2563EB' }}
+                    >
+                      <span className="text-[10px] font-display font-bold text-white leading-none">
+                        {dayNum}
+                      </span>
+                    </div>
+                  ) : (
+                    <span
+                      className="text-[11px] font-display font-bold leading-none"
+                      style={{ color: textPrimary }}
+                    >
+                      {dayNum}
+                    </span>
                   )}
                   {holiday && (
-                    <span className="text-[6px] leading-none" style={{ color: '#F59E0B' }}>★</span>
+                    <span className="text-[7px] leading-tight flex-shrink-0" style={{ color: '#F59E0B' }}>
+                      ★
+                    </span>
                   )}
-                  {entry && (
-                    <svg width="5" height="5" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l3 3 5-5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  {isDeadline && !holiday && (
+                    <span className="text-[6px] font-display font-bold leading-tight flex-shrink-0" style={{ color: '#EF4444' }}>
+                      DUE
+                    </span>
                   )}
                 </div>
 
-                {/* Logged hours */}
-                {loggedHrs > 0 && (
-                  <span className="text-[6px] font-display font-bold z-10 leading-none" style={{ color: '#10B981' }}>
-                    {loggedHrs}h
-                  </span>
-                )}
+                {/* Bottom row: type pill + logged indicator */}
+                <div className="flex items-end gap-0.5 w-full">
+                  {schedDay && schedDay.type !== 'off' && (
+                    <div
+                      className="rounded-[3px] flex items-center"
+                      style={{
+                        background: `${TYPE_COLORS[schedDay.type]}25`,
+                        padding: '2px 3px',
+                        maxWidth: hasLoggedEntry ? '58%' : '94%',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <span
+                        className="font-display font-bold truncate"
+                        style={{
+                          fontSize: '6.5px',
+                          color: TYPE_COLORS[schedDay.type],
+                          letterSpacing: '0.2px',
+                        }}
+                      >
+                        {TYPE_ABBREV[schedDay.type]}
+                      </span>
+                    </div>
+                  )}
+                  {hasLoggedEntry && (
+                    <div className="ml-auto flex items-center gap-0.5 flex-shrink-0">
+                      {loggedReg > 0 && (
+                        <span
+                          className="font-display font-bold"
+                          style={{ fontSize: '6.5px', color: '#10B981' }}
+                        >
+                          {loggedReg}h
+                        </span>
+                      )}
+                      <div
+                        className="w-[5px] h-[5px] rounded-full"
+                        style={{ background: '#10B981', flexShrink: 0 }}
+                      />
+                    </div>
+                  )}
+                </div>
               </motion.button>
             )
           })}
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1.5 px-0.5 pt-1">
-          {[
-            { color: '#0155C1', label: 'Scheduled' },
-            { color: '#EC0677', label: 'OT Pickup' },
-            { color: '#D97706', label: 'Callout' },
-            { color: '#7C3AED', label: 'Vacation' },
-            { color: '#475569', label: 'Day Off' },
-          ].map(({ color, label }) => (
-            <div key={label} className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-              <span className="text-[9px] font-body" style={{ color: textSecondary }}>{label}</span>
-            </div>
-          ))}
-          <div className="flex items-center gap-1">
-            <span style={{ color: '#F59E0B', fontSize: '9px' }}>★</span>
-            <span className="text-[9px] font-body" style={{ color: textSecondary }}>Holiday</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <svg width="8" height="7" viewBox="0 0 10 8" fill="none">
-              <path d="M1 4l3 3 5-5" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="text-[9px] font-body" style={{ color: textSecondary }}>Logged</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3.5 h-3.5 rounded flex items-center justify-center" style={{ border: '1.5px solid #EF4444' }}>
-              <span className="text-[6px] font-display font-bold" style={{ color: textPrimary }}>D</span>
-            </div>
-            <span className="text-[9px] font-body" style={{ color: textSecondary }}>ECATS Deadline</span>
+        {/* Legend — horizontal scroll */}
+        <div className="mt-3 -mx-0 overflow-x-auto">
+          <div className="flex items-center gap-3 pb-0.5" style={{ minWidth: 'max-content', paddingLeft: '2px' }}>
+            {([
+              { color: '#0155C1', label: 'Scheduled', type: 'square' },
+              { color: '#EC0677', label: 'OT', type: 'square' },
+              { color: '#D97706', label: 'Callout', type: 'square' },
+              { color: '#7C3AED', label: 'Vacation', type: 'square' },
+              { color: '#7C3AED', label: 'Req Off', type: 'dashed' },
+              { color: '#475569', label: 'Day Off', type: 'square' },
+              { color: '#F59E0B', label: 'Holiday', type: 'star' },
+              { color: '#10B981', label: 'Logged', type: 'check' },
+              { color: '#EF4444', label: 'ECATS Due', type: 'bar' },
+            ] as { color: string; label: string; type: string }[]).map(({ color, label, type }) => (
+              <div key={label} className="flex items-center gap-1 flex-shrink-0">
+                {type === 'star' ? (
+                  <span style={{ color, fontSize: '9px', lineHeight: 1 }}>★</span>
+                ) : type === 'check' ? (
+                  <svg width="9" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l3 3 5-5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : type === 'bar' ? (
+                  <div style={{ width: '12px', height: '2.5px', background: color, borderRadius: '2px' }} />
+                ) : type === 'dashed' ? (
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', border: `1.5px dashed ${color}` }} />
+                ) : (
+                  <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: color }} />
+                )}
+                <span className="text-[9px] font-body" style={{ color: textSecondary }}>{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -299,7 +374,6 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
         )}
       </AnimatePresence>
 
-      {/* Schedule photo parser */}
       <SchedulePhotoParser
         isOpen={photoParserOpen}
         onClose={() => setPhotoParserOpen(false)}

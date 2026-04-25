@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import TrackTab from './components/TrackTab'
 import LogTab from './components/LogTab'
 import CalendarTab from './components/CalendarTab'
@@ -9,9 +9,11 @@ import RoleSetup from './components/RoleSetup'
 import ReportModal from './components/ReportModal'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import VaultSheet from './components/VaultSheet'
+import SplashScreen from './components/SplashScreen'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
+import { motion } from 'framer-motion'
 
 type Tab = 'track' | 'log' | 'cal'
 
@@ -23,6 +25,9 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [vaultOpen, setVaultOpen] = useState(false)
+  const [showSplash, setShowSplash] = useState(() => {
+    try { return !sessionStorage.getItem('etally-splash') } catch { return false }
+  })
 
   const role = useStore((s) => s.role)
   const entries = useStore((s: any) => s.entries)
@@ -52,6 +57,15 @@ export default function App() {
       style={{ height: '100dvh', overflow: 'hidden' }}
       data-theme={theme}
     >
+      {/* Splash screen — once per session */}
+      <SplashScreen
+        visible={showSplash}
+        onComplete={() => {
+          try { sessionStorage.setItem('etally-splash', '1') } catch { /* noop */ }
+          setShowSplash(false)
+        }}
+      />
+
       {/* Role setup overlay */}
       <AnimatePresence>{!role && <RoleSetup />}</AnimatePresence>
 
@@ -117,7 +131,7 @@ export default function App() {
               )}
             </motion.button>
 
-            {/* Vault button — between theme toggle and export */}
+            {/* Vault button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setVaultOpen(true)}
@@ -198,7 +212,7 @@ export default function App() {
       {/* About sheet */}
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
 
-      {/* Report modal — closes back to home */}
+      {/* Report modal */}
       <ReportModal
         isOpen={reportOpen}
         onClose={() => { setReportOpen(false); goHome() }}
@@ -209,7 +223,7 @@ export default function App() {
       {/* Vault sheet */}
       <VaultSheet isOpen={vaultOpen} onClose={() => setVaultOpen(false)} />
 
-      {/* Migration prompt — shown on first launch with existing data */}
+      {/* Migration prompt */}
       <LegacyMigrationPrompt />
     </div>
   )

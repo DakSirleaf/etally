@@ -30,21 +30,20 @@ const CalIcon = ({ active }: { active: boolean }) => (
   </svg>
 )
 
-const TAB_COLORS: Record<Tab, string> = {
+const TAB_INDICATOR_COLORS: Record<Tab, string> = {
   track: '#2563EB',
-  log: '#DB2777',
+  log: '#64748B',
   cal: '#7C3AED',
 }
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'track', label: 'Track' },
-  { id: 'log', label: 'Log' },
-  { id: 'cal', label: 'Cal' },
+  { id: 'track', label: 'TRACK' },
+  { id: 'log', label: 'LOG' },
+  { id: 'cal', label: 'CAL' },
 ]
 
 export default function BottomNav({ active, setActive }: BottomNavProps) {
-  const { isDark, navBg, navBorder } = useTheme()
-  const inactiveColor = isDark ? '#1E293B' : '#CBD5E1'
+  const { navBg, navBorder } = useTheme()
 
   return (
     <nav
@@ -57,7 +56,8 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
     >
       {TABS.map((tab) => {
         const isActive = active === tab.id
-        const color = TAB_COLORS[tab.id]
+        const indicatorColor = TAB_INDICATOR_COLORS[tab.id]
+        const iconColor = isActive ? '#FFFFFF' : '#475569'
 
         return (
           <motion.button
@@ -70,11 +70,11 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
               <motion.div
                 layoutId="nav-pill"
                 className="absolute top-0 left-6 right-6 h-0.5 rounded-full"
-                style={{ background: color }}
+                style={{ background: indicatorColor }}
                 transition={{ type: 'spring', stiffness: 500, damping: 42 }}
               />
             )}
-            <span style={{ color: isActive ? color : inactiveColor }} className="transition-colors duration-150">
+            <span style={{ color: iconColor }} className="transition-colors duration-150">
               {tab.id === 'track' ? (
                 <TrackIcon active={isActive} />
               ) : tab.id === 'log' ? (
@@ -84,10 +84,10 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
               )}
             </span>
             <span
-              className="text-[10px] font-display font-bold tracking-widest transition-colors duration-150"
-              style={{ color: isActive ? color : inactiveColor }}
+              className="font-display font-bold tracking-widest transition-colors duration-150"
+              style={{ fontSize: '9px', color: iconColor }}
             >
-              {tab.label.toUpperCase()}
+              {tab.label}
             </span>
           </motion.button>
         )
