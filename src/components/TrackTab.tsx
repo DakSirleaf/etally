@@ -1,3 +1,4 @@
+import EcatsBanner from './EcatsBanner'
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { calculateHours } from '../lib/calculations'
@@ -161,6 +162,7 @@ export default function TrackTab() {
 
   return (
     <>
+      <EcatsBanner />
       <motion.div
         className="h-full overflow-y-auto px-4 pt-3 pb-6 flex flex-col gap-2.5"
         variants={containerVariants}
