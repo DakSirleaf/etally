@@ -9,14 +9,24 @@ import DayDetailSheet from './DayDetailSheet'
 import SchedulePhotoParser from './SchedulePhotoParser'
 import EditEntrySheet from './EditEntrySheet'
 
-const TYPE_COLORS: Record<string, string> = {
+const TYPE_PILL_BG: Record<string, string> = {
   scheduled: '#0155C1',
   ot: '#EC0677',
   callout: '#D97706',
   vacation: '#7C3AED',
-  aspirational: '#7C3AED',
-  off: '#475569',
+  aspirational: 'rgba(124,58,237,0.42)',
+  off: '#334155',
   holiday: '#F59E0B',
+}
+
+const TYPE_PILL_TEXT: Record<string, string> = {
+  scheduled: '#FFFFFF',
+  ot: '#FFFFFF',
+  callout: '#FFFFFF',
+  vacation: '#FFFFFF',
+  aspirational: '#C4B5FD',
+  off: '#94A3B8',
+  holiday: '#1A1200',
 }
 
 const TYPE_ABBREV: Record<string, string> = {
@@ -279,24 +289,28 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                   )}
                 </div>
 
-                {/* Bottom row: type pill + logged indicator */}
-                <div className="flex items-end gap-0.5 w-full">
-                  {schedDay && schedDay.type !== 'off' && (
+                {/* Bottom row: type pill + logged pill */}
+                <div className="flex items-end gap-0.5 w-full" style={{ minWidth: 0 }}>
+                  {schedDay && (
                     <div
-                      className="rounded-[3px] flex items-center"
+                      className="flex items-center min-w-0"
                       style={{
-                        background: `${TYPE_COLORS[schedDay.type]}25`,
-                        padding: '2px 3px',
-                        maxWidth: hasLoggedEntry ? '58%' : '94%',
+                        background: TYPE_PILL_BG[schedDay.type],
+                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        flex: hasLoggedEntry ? '1 1 0' : '1 1 100%',
                         overflow: 'hidden',
+                        border: schedDay.type === 'aspirational' ? '1px dashed rgba(255,255,255,0.35)' : 'none',
+                        flexShrink: 1,
                       }}
                     >
                       <span
-                        className="font-display font-bold truncate"
+                        className="font-display font-bold truncate block w-full"
                         style={{
-                          fontSize: '6.5px',
-                          color: TYPE_COLORS[schedDay.type],
+                          fontSize: '9px',
+                          color: TYPE_PILL_TEXT[schedDay.type],
                           letterSpacing: '0.2px',
+                          lineHeight: 1.2,
                         }}
                       >
                         {TYPE_ABBREV[schedDay.type]}
@@ -305,24 +319,29 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                   )}
                   {hasLoggedEntry && (
                     <div
-                      className="ml-auto flex items-center gap-0.5 flex-shrink-0 rounded-sm px-0.5"
-                      style={{ background: 'rgba(16,185,129,0.15)', padding: '1px 3px' }}
+                      className="flex items-center flex-shrink-0"
+                      style={{
+                        background: '#059669',
+                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        flex: schedDay ? '0 0 auto' : '1 1 100%',
+                        cursor: 'pointer',
+                      }}
                       onClick={(e) => {
                         e.stopPropagation()
                         setEditingEntry(entry!)
                       }}
                     >
-                      {loggedReg > 0 && (
-                        <span
-                          className="font-display font-bold"
-                          style={{ fontSize: '6.5px', color: '#10B981' }}
-                        >
-                          {loggedReg}h
-                        </span>
-                      )}
-                      <svg width="5" height="5" viewBox="0 0 10 8" fill="none" style={{ flexShrink: 0 }}>
-                        <path d="M1 4l3 3 5-5" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      <span
+                        className="font-display font-bold whitespace-nowrap"
+                        style={{ fontSize: '9px', color: '#FFFFFF', lineHeight: 1.2 }}
+                      >
+                        {loggedReg > 0
+                          ? `✓ ${loggedReg}h`
+                          : entry!.type === 'CALLOUT'
+                          ? '✓ CO'
+                          : '✓ OFF'}
+                      </span>
                     </div>
                   )}
                 </div>

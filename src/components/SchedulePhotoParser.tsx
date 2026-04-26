@@ -193,7 +193,7 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.22 }}
+          transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[250] flex flex-col"
           style={{ background: '#050912' }}
         >
@@ -352,7 +352,7 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
-                transition={{ type: 'spring', stiffness: 380, damping: 40 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 32 }}
                 className="flex-shrink-0"
                 style={{
                   background: '#080D1E',

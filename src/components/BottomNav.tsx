@@ -71,7 +71,7 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
                 layoutId="nav-pill"
                 className="absolute top-0 left-6 right-6 h-0.5 rounded-full"
                 style={{ background: indicatorColor }}
-                transition={{ type: 'spring', stiffness: 500, damping: 42 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 32 }}
               />
             )}
             <span style={{ color: iconColor }} className="transition-colors duration-150">

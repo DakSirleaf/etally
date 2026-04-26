@@ -187,7 +187,7 @@ export default function TrackTab() {
           <motion.div
             className="absolute top-1 bottom-1 rounded-xl shadow-sm"
             animate={{ left: pillLeft, width: pillWidth, background: accentColor }}
-            transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 32 }}
           />
           {SHIFT_TYPES.map((t) => (
             <motion.button

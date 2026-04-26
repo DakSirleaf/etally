@@ -111,7 +111,7 @@ export default function DayDetailSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             className="fixed inset-0 z-40"
             style={{ background: 'rgba(5,9,18,0.78)', backdropFilter: 'blur(8px)' }}
             onClick={onClose}
@@ -121,7 +121,7 @@ export default function DayDetailSheet({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 440, damping: 44 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
               background: isDark ? '#080D1E' : '#FFFFFF',

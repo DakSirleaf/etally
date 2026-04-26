@@ -80,9 +80,53 @@ select {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Print styles */
+/* Welcome modal floating blob animations */
+@keyframes floatA { from { transform: translate(0, 0); } to { transform: translate(32px, 22px); } }
+@keyframes floatB { from { transform: translate(0, 0); } to { transform: translate(-26px, 36px); } }
+@keyframes floatC { from { transform: translate(0, 0); } to { transform: translate(22px, -28px); } }
+@keyframes floatD { from { transform: translate(0, 0); } to { transform: translate(-34px, -18px); } }
+@keyframes floatE { from { transform: translate(0, 0); } to { transform: translate(28px, 30px); } }
+@keyframes floatF { from { transform: translate(0, 0); } to { transform: translate(-22px, 24px); } }
+
+.welcome-blob-1 { animation: floatA 25s ease-in-out infinite alternate; }
+.welcome-blob-2 { animation: floatB 32s ease-in-out infinite alternate; }
+.welcome-blob-3 { animation: floatC 18s ease-in-out infinite alternate; }
+.welcome-blob-4 { animation: floatD 28s ease-in-out infinite alternate; }
+.welcome-blob-5 { animation: floatE 22s ease-in-out infinite alternate; }
+.welcome-blob-6 { animation: floatF 35s ease-in-out infinite alternate; }
+
+/* Print styles — reports only, B&W */
 @media print {
-  body { background: white !important; color: black !important; }
-  nav, header button { display: none !important; }
+  /* Force white base */
+  html, body { background: white !important; color: black !important; }
+
+  /* Hide everything except the report content */
+  header, nav, .fixed { display: none !important; }
+
+  /* Show only report modal content when printing */
+  .print-report-content { display: block !important; position: static !important; }
+
+  /* Strip all backgrounds and shadows */
+  * {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Calendar pills print as outlined boxes */
+  [class*="rounded"][style*="background"] {
+    background: white !important;
+    border: 1px solid #333 !important;
+    color: black !important;
+  }
+
+  /* Preserve borders for structure */
+  table, th, td { border: 1px solid #ccc !important; }
+
+  /* Page breaks */
+  .page-break { page-break-before: always; }
 }
 

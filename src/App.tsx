@@ -9,7 +9,7 @@ import RoleSetup from './components/RoleSetup'
 import ReportModal from './components/ReportModal'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import VaultSheet from './components/VaultSheet'
-import SplashScreen from './components/SplashScreen'
+import WelcomeModal from './components/WelcomeModal'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
@@ -25,8 +25,8 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [vaultOpen, setVaultOpen] = useState(false)
-  const [showSplash, setShowSplash] = useState(() => {
-    try { return !sessionStorage.getItem('etally-splash') } catch { return false }
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try { return !localStorage.getItem('etally-welcomed') } catch { return false }
   })
 
   const role = useStore((s) => s.role)
@@ -57,14 +57,10 @@ export default function App() {
       style={{ height: '100dvh', overflow: 'hidden' }}
       data-theme={theme}
     >
-      {/* Splash screen — once per session */}
-      <SplashScreen
-        visible={showSplash}
-        onComplete={() => {
-          try { sessionStorage.setItem('etally-splash', '1') } catch { /* noop */ }
-          setShowSplash(false)
-        }}
-      />
+      {/* Welcome modal — once ever */}
+      <AnimatePresence>
+        {showWelcome && <WelcomeModal onDismiss={() => setShowWelcome(false)} />}
+      </AnimatePresence>
 
       {/* Role setup overlay */}
       <AnimatePresence>{!role && <RoleSetup />}</AnimatePresence>
@@ -86,7 +82,7 @@ export default function App() {
             whileTap={{ scale: 0.96 }}
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.05 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.05 }}
             className="text-left"
           >
             <div className="flex items-center gap-2">
