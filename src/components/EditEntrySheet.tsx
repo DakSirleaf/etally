@@ -76,7 +76,7 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-[60]"
         style={{ background: 'rgba(5,9,18,0.8)', backdropFilter: 'blur(6px)' }}
         onClick={onClose}
       />
@@ -85,7 +85,7 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 420, damping: 42 }}
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl overflow-hidden"
         style={{
           background: isDark ? '#0A0F1E' : '#FFFFFF',
           paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
@@ -161,14 +161,14 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
             </select>
           )}
 
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-col gap-2 mt-2">
             <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
-              className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
-              style={{ background: accentColor }}>
+              className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
+              style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)' }}>
               SAVE CHANGES
             </motion.button>
             <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
-              className="py-4 px-5 rounded-2xl font-display font-bold text-sm tracking-widest"
+              className="w-full py-3.5 rounded-2xl font-display font-bold text-sm tracking-widest"
               style={{ background: surface, border: surfaceBorder, color: textSecondary }}>
               CANCEL
             </motion.button>

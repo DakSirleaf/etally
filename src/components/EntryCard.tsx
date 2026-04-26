@@ -94,12 +94,13 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => { setConfirmDelete(false); onEdit(entry) }}
-              className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: isDark ? 'rgba(148,163,184,0.12)' : '#F1F5F9' }}
+              aria-label="Edit entry"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke={isDark ? '#475569' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke={isDark ? '#475569' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </motion.button>
 
@@ -107,10 +108,11 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => setConfirmDelete(!confirmDelete)}
-              className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: confirmDelete ? 'rgba(239,68,68,0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC') }}
+              aria-label="Delete entry"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={confirmDelete ? '#F43F5E' : (isDark ? '#475569' : '#94A3B8')} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </motion.button>
@@ -130,24 +132,39 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #F1F5F9' }}>
-                <span className="text-[10px] font-body flex-1" style={{ color: '#F43F5E' }}>Delete this entry?</span>
-                <motion.button
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => onDelete(entry.id)}
-                  className="px-3 py-1.5 rounded-xl font-display font-bold text-[10px] tracking-widest text-white"
-                  style={{ background: '#EF4444' }}
-                >
-                  DELETE
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => setConfirmDelete(false)}
-                  className="px-3 py-1.5 rounded-xl font-display font-bold text-[10px] tracking-widest"
-                  style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#475569' : '#94A3B8' }}
-                >
-                  CANCEL
-                </motion.button>
+              <div className="mt-3 pt-3" style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #F1F5F9' }}>
+                <div className="mb-2">
+                  <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#F43F5E' }}>DELETE THIS ENTRY?</span>
+                  <div className="text-[10px] font-body mt-1" style={{ color: isDark ? '#64748B' : '#94A3B8' }}>
+                    {formatDate(entry.date)}
+                    {!isOff && !isCallout && (parseFloat(entry.reg) > 0 || parseFloat(entry.ot) > 0) && (
+                      <span>
+                        {parseFloat(entry.reg) > 0 && ` · ${entry.reg}h REG`}
+                        {parseFloat(entry.ot) > 0 && ` · ${entry.ot}h OT`}
+                      </span>
+                    )}
+                    {isCallout && ` · Callout (${entry.calloutPayType})`}
+                    {isOff && ' · Day Off'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => onDelete(entry.id)}
+                    className="flex-1 py-2 rounded-xl font-display font-bold text-[10px] tracking-widest text-white"
+                    style={{ background: '#EF4444' }}
+                  >
+                    YES, DELETE
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 py-2 rounded-xl font-display font-bold text-[10px] tracking-widest"
+                    style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#475569' : '#94A3B8' }}
+                  >
+                    CANCEL
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           )}

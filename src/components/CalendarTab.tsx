@@ -7,6 +7,7 @@ import { getHolidaysForYear, getEcatsDeadline } from '../lib/ecatsAlerts'
 import type { LogEntry, ScheduleDay } from '../types'
 import DayDetailSheet from './DayDetailSheet'
 import SchedulePhotoParser from './SchedulePhotoParser'
+import EditEntrySheet from './EditEntrySheet'
 
 const TYPE_COLORS: Record<string, string> = {
   scheduled: '#0155C1',
@@ -58,6 +59,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [photoParserOpen, setPhotoParserOpen] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<LogEntry | null>(null)
 
   const goToToday = useCallback(() => {
     setViewYear(today.getFullYear())
@@ -302,7 +304,14 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                     </div>
                   )}
                   {hasLoggedEntry && (
-                    <div className="ml-auto flex items-center gap-0.5 flex-shrink-0">
+                    <div
+                      className="ml-auto flex items-center gap-0.5 flex-shrink-0 rounded-sm px-0.5"
+                      style={{ background: 'rgba(16,185,129,0.15)', padding: '1px 3px' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingEntry(entry!)
+                      }}
+                    >
                       {loggedReg > 0 && (
                         <span
                           className="font-display font-bold"
@@ -311,10 +320,9 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                           {loggedReg}h
                         </span>
                       )}
-                      <div
-                        className="w-[5px] h-[5px] rounded-full"
-                        style={{ background: '#10B981', flexShrink: 0 }}
-                      />
+                      <svg width="5" height="5" viewBox="0 0 10 8" fill="none" style={{ flexShrink: 0 }}>
+                        <path d="M1 4l3 3 5-5" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </div>
                   )}
                 </div>
@@ -378,6 +386,10 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
         isOpen={photoParserOpen}
         onClose={() => setPhotoParserOpen(false)}
       />
+
+      {editingEntry && (
+        <EditEntrySheet entry={editingEntry} onClose={() => setEditingEntry(null)} />
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { getPayPeriodForDate } from '../lib/payPeriod'
 import { getEcatsDeadline } from '../lib/ecatsAlerts'
 import { to12hr } from '../lib/timeFormat'
 import type { LogEntry, ScheduleDay, DayType } from '../types'
+import EditEntrySheet from './EditEntrySheet'
 
 const TYPE_COLORS: Record<string, string> = {
   scheduled: '#0155C1',
@@ -53,6 +54,7 @@ export default function DayDetailSheet({
   const setScheduleDay = useStore((s: any) => s.setScheduleDay)
   const setPendingTrackDate = useStore((s: any) => s.setPendingTrackDate)
 
+  const [editOpen, setEditOpen] = useState(false)
   const [note, setNote] = useState(scheduleDay?.note ?? '')
   const [startTime, setStartTime] = useState(scheduleDay?.startTime ?? '')
   const [endTime, setEndTime] = useState(scheduleDay?.endTime ?? '')
@@ -198,8 +200,22 @@ export default function DayDetailSheet({
               {/* Logged entry card */}
               {entry && (
                 <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: surface, border: surfaceBorder }}>
-                  <div className="text-[9px] font-display font-bold tracking-widest mb-2" style={{ color: labelColor }}>
-                    LOGGED ENTRY
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[9px] font-display font-bold tracking-widest" style={{ color: labelColor }}>
+                      LOGGED ENTRY
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.93 }}
+                      onClick={() => setEditOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                      style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.2)' }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: '#3B82F6' }}>EDIT</span>
+                    </motion.button>
                   </div>
                   {entry.reason === 'OFF' ? (
                     <span className="text-sm font-display font-bold" style={{ color: textSecondary }}>Day Off</span>
@@ -230,6 +246,22 @@ export default function DayDetailSheet({
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Full-width Edit Entry button */}
+              {entry && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setEditOpen(true)}
+                  className="w-full py-3.5 rounded-2xl font-display font-bold text-sm tracking-widest text-white mb-3 flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)' }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  EDIT ENTRY
+                </motion.button>
               )}
 
               {/* Schedule type buttons */}
@@ -352,6 +384,11 @@ export default function DayDetailSheet({
             </div>
           </motion.div>
         </>
+      )}
+
+      {/* Edit entry sheet — z-index above the detail sheet */}
+      {editOpen && entry && (
+        <EditEntrySheet entry={entry} onClose={() => setEditOpen(false)} />
       )}
     </AnimatePresence>
   )
