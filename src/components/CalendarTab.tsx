@@ -14,7 +14,7 @@ const TYPE_PILL_BG: Record<string, string> = {
   ot: '#EC0677',
   callout: '#D97706',
   vacation: '#7C3AED',
-  aspirational: 'rgba(124,58,237,0.42)',
+  aspirational: 'rgba(124,58,237,0.4)',
   off: '#334155',
   holiday: '#F59E0B',
 }
@@ -134,7 +134,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
   const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long' })
 
   return (
-    <div className="flex flex-col pb-6">
+    <div className="flex flex-col pb-6 no-print-cal">
       <div className="px-4 pt-3">
 
         {/* Header */}
@@ -233,7 +233,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
             const cellBg = isToday
               ? isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.1)'
               : holiday
-              ? isDark ? 'rgba(245,158,11,0.07)' : 'rgba(245,158,11,0.06)'
+              ? 'rgba(245,158,11,0.15)'
               : bandBg
 
             const loggedReg =
@@ -300,7 +300,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                         padding: '1px 4px',
                         flex: hasLoggedEntry ? '1 1 0' : '1 1 100%',
                         overflow: 'hidden',
-                        border: schedDay.type === 'aspirational' ? '1px dashed rgba(255,255,255,0.35)' : 'none',
+                        border: schedDay.type === 'aspirational' ? '1px dashed white' : 'none',
                         flexShrink: 1,
                       }}
                     >

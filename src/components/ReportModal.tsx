@@ -290,7 +290,7 @@ export default function ReportModal({ isOpen, onClose, entries, role }: ReportMo
           />
           <motion.div
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 42 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
               background: isDark ? '#0A0F1E' : '#FFFFFF',

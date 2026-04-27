@@ -41,7 +41,7 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.35 }}
             className="fixed inset-0 z-40"
             style={{ background: 'rgba(5,9,18,0.75)', backdropFilter: 'blur(6px)' }}
             onClick={onClose}
@@ -51,7 +51,7 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 42 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
               background: isDark ? '#0A0F1E' : '#FFFFFF',

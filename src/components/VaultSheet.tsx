@@ -280,7 +280,7 @@ export default function VaultSheet({ isOpen, onClose }: VaultSheetProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.35 }}
             className="fixed inset-0 z-40"
             style={{ background: 'rgba(5,9,18,0.75)', backdropFilter: 'blur(6px)' }}
             onClick={handleClose}
@@ -289,7 +289,7 @@ export default function VaultSheet({ isOpen, onClose }: VaultSheetProps) {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 42 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl flex flex-col"
             style={{
               background: isDark ? '#0A0F1E' : '#FFFFFF',
@@ -341,7 +341,7 @@ export default function VaultSheet({ isOpen, onClose }: VaultSheetProps) {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.35 }}
                   >
                     <DetailView
                       period={selected}
@@ -360,7 +360,7 @@ export default function VaultSheet({ isOpen, onClose }: VaultSheetProps) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.35 }}
                   >
                     {sorted.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-center">

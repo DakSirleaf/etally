@@ -126,6 +126,9 @@ select {
   /* Preserve borders for structure */
   table, th, td { border: 1px solid #ccc !important; }
 
+  /* Hide calendar tab entirely */
+  .no-print-cal { display: none !important; }
+
   /* Page breaks */
   .page-break { page-break-before: always; }
 }

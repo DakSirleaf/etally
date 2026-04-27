@@ -50,7 +50,7 @@ export default function RoleSetup() {
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.94 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 240, damping: 26, delay: 0.1 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 28, delay: 0.1 }}
         className="w-full max-w-sm relative z-10"
       >
         <motion.div
@@ -82,7 +82,7 @@ export default function RoleSetup() {
               key={role}
               initial={{ opacity: 0, x: -28 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.36 + i * 0.09, type: 'spring', stiffness: 260, damping: 26 }}
+              transition={{ delay: 0.36 + i * 0.09, type: 'spring', stiffness: 260, damping: 28 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => setRole(role)}
               className="w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all"

@@ -46,7 +46,7 @@ export default function TimePickerSheet({
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.35 }}
             className="fixed inset-0 z-40"
             style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}
             onClick={onClose}
@@ -55,7 +55,7 @@ export default function TimePickerSheet({
           {/* Sheet */}
           <motion.div
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 42 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl"
             style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}
           >

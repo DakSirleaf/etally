@@ -25,7 +25,7 @@ export default function LegacyMigrationPrompt() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.35 }}
             className="fixed inset-0 z-[80]"
             style={{ background: 'rgba(5,9,18,0.88)', backdropFilter: 'blur(8px)' }}
           />
@@ -33,7 +33,7 @@ export default function LegacyMigrationPrompt() {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 380, damping: 40 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-[90] rounded-t-3xl"
             style={{
               background: isDark ? '#0A0F1E' : '#FFFFFF',

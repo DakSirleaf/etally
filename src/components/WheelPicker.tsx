@@ -23,8 +23,8 @@ export default function WheelPicker({ items, selected, onChange, label }: WheelP
     if (idx >= 0) {
       animate(y, -idx * ITEM_HEIGHT, {
         type: 'spring',
-        stiffness: 350,
-        damping: 35,
+        stiffness: 320,
+        damping: 32,
       })
     }
   }, [selected, items, y])
