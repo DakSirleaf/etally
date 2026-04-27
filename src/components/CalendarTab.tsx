@@ -14,8 +14,8 @@ const TYPE_PILL_BG: Record<string, string> = {
   ot: '#EC0677',
   callout: '#D97706',
   vacation: '#7C3AED',
-  aspirational: 'rgba(124,58,237,0.4)',
-  off: '#334155',
+  aspirational: '#5B21B6',
+  off: '#1E293B',
   holiday: '#F59E0B',
 }
 
@@ -24,7 +24,7 @@ const TYPE_PILL_TEXT: Record<string, string> = {
   ot: '#FFFFFF',
   callout: '#FFFFFF',
   vacation: '#FFFFFF',
-  aspirational: '#C4B5FD',
+  aspirational: '#DDD6FE',
   off: '#94A3B8',
   holiday: '#1A1200',
 }
@@ -233,7 +233,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
             const cellBg = isToday
               ? isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.1)'
               : holiday
-              ? 'rgba(245,158,11,0.15)'
+              ? 'rgba(245,158,11,0.25)'
               : bandBg
 
             const loggedReg =
@@ -254,7 +254,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                 {isDeadline && (
                   <div
                     className="absolute bottom-0 inset-x-0 h-[2.5px]"
-                    style={{ background: 'rgba(239,68,68,0.75)' }}
+                    style={{ background: '#DC2626' }}
                   />
                 )}
 
@@ -283,7 +283,10 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                     </span>
                   )}
                   {isDeadline && !holiday && (
-                    <span className="text-[6px] font-display font-bold leading-tight flex-shrink-0" style={{ color: '#EF4444' }}>
+                    <span
+                      className="font-display font-bold leading-none flex-shrink-0"
+                      style={{ fontSize: '6px', background: '#DC2626', color: '#FFFFFF', borderRadius: '2px', padding: '1px 2px' }}
+                    >
                       DUE
                     </span>
                   )}
@@ -298,16 +301,17 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                         background: TYPE_PILL_BG[schedDay.type],
                         borderRadius: '4px',
                         padding: '1px 4px',
+                        minHeight: '16px',
                         flex: hasLoggedEntry ? '1 1 0' : '1 1 100%',
                         overflow: 'hidden',
-                        border: schedDay.type === 'aspirational' ? '1px dashed white' : 'none',
+                        border: schedDay.type === 'aspirational' ? '1.5px dashed #A78BFA' : 'none',
                         flexShrink: 1,
                       }}
                     >
                       <span
                         className="font-display font-bold truncate block w-full"
                         style={{
-                          fontSize: '9px',
+                          fontSize: '10px',
                           color: TYPE_PILL_TEXT[schedDay.type],
                           letterSpacing: '0.2px',
                           lineHeight: 1.2,
@@ -324,6 +328,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                         background: '#059669',
                         borderRadius: '4px',
                         padding: '1px 4px',
+                        minHeight: '16px',
                         flex: schedDay ? '0 0 auto' : '1 1 100%',
                         cursor: 'pointer',
                       }}
@@ -334,7 +339,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                     >
                       <span
                         className="font-display font-bold whitespace-nowrap"
-                        style={{ fontSize: '9px', color: '#FFFFFF', lineHeight: 1.2 }}
+                        style={{ fontSize: '10px', color: '#FFFFFF', lineHeight: 1.2 }}
                       >
                         {loggedReg > 0
                           ? `✓ ${loggedReg}h`

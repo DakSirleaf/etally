@@ -32,7 +32,7 @@ const CalIcon = ({ active }: { active: boolean }) => (
 
 const TAB_INDICATOR_COLORS: Record<Tab, string> = {
   track: '#2563EB',
-  log: '#64748B',
+  log: '#475569',
   cal: '#7C3AED',
 }
 
@@ -43,13 +43,13 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 export default function BottomNav({ active, setActive }: BottomNavProps) {
-  const { navBg, navBorder } = useTheme()
+  const { isDark, navBorder } = useTheme()
 
   return (
     <nav
       className="flex-shrink-0 flex"
       style={{
-        background: navBg,
+        background: isDark ? '#050912' : '#FFFFFF',
         borderTop: `1px solid ${navBorder}`,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
@@ -64,17 +64,13 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
             key={tab.id}
             onClick={() => setActive(tab.id)}
             whileTap={{ scale: 0.92 }}
-            className="flex-1 flex flex-col items-center justify-center gap-1 h-16 relative"
+            className="flex-1 flex flex-col items-center justify-center gap-1"
+            style={{
+              height: '64px',
+              borderTop: isActive ? `2px solid ${indicatorColor}` : '2px solid transparent',
+            }}
           >
-            {isActive && (
-              <motion.div
-                layoutId="nav-pill"
-                className="absolute top-0 left-6 right-6 h-0.5 rounded-full"
-                style={{ background: indicatorColor }}
-                transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              />
-            )}
-            <span style={{ color: iconColor }} className="transition-colors duration-150">
+            <span style={{ color: iconColor }}>
               {tab.id === 'track' ? (
                 <TrackIcon active={isActive} />
               ) : tab.id === 'log' ? (
@@ -84,7 +80,7 @@ export default function BottomNav({ active, setActive }: BottomNavProps) {
               )}
             </span>
             <span
-              className="font-display font-bold tracking-widest transition-colors duration-150"
+              className="font-display font-bold tracking-widest"
               style={{ fontSize: '9px', color: iconColor }}
             >
               {tab.label}
