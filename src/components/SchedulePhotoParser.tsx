@@ -13,7 +13,7 @@ interface ParsedDay {
 }
 
 const SYSTEM_PROMPT =
-  'You are a schedule parser. The user will upload a photo of a hospital shift schedule. Extract the schedule for the employee shown. Return ONLY a JSON array of objects with this exact format: [{"date": "YYYY-MM-DD", "type": "scheduled"|"ot"|"vacation"|"off", "startTime": "HH:MM", "endTime": "HH:MM", "note": "any notes"}]. Use the current year 2026. Return nothing but the JSON array.'
+  'You are a schedule parser. The image is a photo of a printed monthly hospital shift schedule for a single employee. The schedule shows a calendar grid with days of the week as column headers (Sunday through Saturday) and dates listed under each day with a shift code below each date. Extract every date that has a code. Code meanings: "N" means a night shift that STARTS the previous calendar day at 22:45 and ENDS on the listed date at 07:15, type is "scheduled". "VACD" means approved vacation day, type is "vacation", no times needed. Return ONLY a valid JSON array with no extra text: [{"date": "YYYY-MM-DD", "type": "scheduled"|"vacation", "startTime": "22:45", "endTime": "07:15"}]. For N shifts, set date to the listed date. Use year 2026.'  
 
 const SUPPORTED_TYPES: Record<string, string> = {
   'image/jpeg': 'image/jpeg',
