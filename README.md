@@ -7,7 +7,7 @@ Built with React + TypeScript + Vite + Tailwind CSS + Framer Motion
 
 ## Deploy to Vercel (No terminal needed)
 
-1. Create a new GitHub repo named `etally`
+1. Create a new  GitHub repo named `etally`
 2. Drag the contents of this folder into GitHub Desktop → commit → push
 3. Go to [vercel.com](https://vercel.com) → New Project → Import your `etally` repo
 4. Vercel auto-detects Vite. Click **Deploy**
