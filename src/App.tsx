@@ -10,8 +10,10 @@ import ReportModal from './components/ReportModal'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import VaultSheet from './components/VaultSheet'
 import WelcomeModal from './components/WelcomeModal'
+import AuthScreen from './components/AuthScreen'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
+import { useAuth } from './lib/useAuth'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 import { motion } from 'framer-motion'
 
@@ -36,6 +38,8 @@ export default function App() {
   const toggleTheme = useStore((s) => s.toggleTheme)
   const isDark = theme === 'dark'
 
+  const { user, loading: authLoading } = useAuth()
+
   useAutoArchive()
 
   const handleTabChange = (newTab: Tab) => {
@@ -47,9 +51,12 @@ export default function App() {
 
   const mainBg = isDark
     ? 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)'
-    : '#F1F5F9'
+    : '#eef0f8'
 
   const periodLabel = formatPeriodRange(getCurrentPayPeriod())
+
+  if (authLoading) return <div style={{ height: '100dvh', background: '#eef0f8' }} />
+  if (!user) return <AuthScreen />
 
   return (
     <div
@@ -57,15 +64,12 @@ export default function App() {
       style={{ height: '100dvh', overflow: 'hidden' }}
       data-theme={theme}
     >
-      {/* Welcome modal — once ever */}
       <AnimatePresence>
         {showWelcome && <WelcomeModal onDismiss={() => setShowWelcome(false)} />}
       </AnimatePresence>
 
-      {/* Role setup overlay */}
       <AnimatePresence>{!role && <RoleSetup />}</AnimatePresence>
 
-      {/* Header */}
       <header
         className="flex-shrink-0 px-5 pb-4"
         style={{
@@ -76,7 +80,6 @@ export default function App() {
       >
         <div className="flex items-center justify-between">
 
-          {/* Left — tapping logo goes home */}
           <motion.button
             onClick={goHome}
             whileTap={{ scale: 0.96 }}
@@ -101,10 +104,8 @@ export default function App() {
             </p>
           </motion.button>
 
-          {/* Right — controls */}
           <div className="flex items-center gap-2">
 
-            {/* Theme toggle */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={toggleTheme}
@@ -127,7 +128,6 @@ export default function App() {
               )}
             </motion.button>
 
-            {/* Vault button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setVaultOpen(true)}
@@ -153,7 +153,6 @@ export default function App() {
               )}
             </motion.button>
 
-            {/* Export button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setReportOpen(true)}
@@ -170,7 +169,6 @@ export default function App() {
               </svg>
             </motion.button>
 
-            {/* Help & Support button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setAboutOpen(true)}
@@ -193,7 +191,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Tab content */}
       <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
         <div className="absolute inset-0 overflow-y-auto">
           {tab === 'track' && <TrackTab />}
@@ -202,13 +199,10 @@ export default function App() {
         </div>
       </main>
 
-      {/* Bottom nav */}
       <BottomNav active={tab} setActive={handleTabChange} />
 
-      {/* About sheet */}
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
 
-      {/* Report modal */}
       <ReportModal
         isOpen={reportOpen}
         onClose={() => { setReportOpen(false); goHome() }}
@@ -216,10 +210,8 @@ export default function App() {
         role={role}
       />
 
-      {/* Vault sheet */}
       <VaultSheet isOpen={vaultOpen} onClose={() => setVaultOpen(false)} />
 
-      {/* Migration prompt */}
       <LegacyMigrationPrompt />
     </div>
   )
