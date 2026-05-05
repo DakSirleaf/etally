@@ -157,7 +157,7 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
       if (sanitised.length === 0) throw new Error('Could not extract valid dates')
       setParsedDays(sanitised)
       setEditedDays(sanitised.map((d) => ({ ...d })))
-    } } catch (err) {
+    } catch (err) {
   setError('Could not read schedule — try a clearer photo or add days manually.')
     console.error('Parse error:', err) 
     } finally {
