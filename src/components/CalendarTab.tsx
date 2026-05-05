@@ -59,8 +59,8 @@ interface CalendarTabProps {
 
 export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
   const { isDark, textPrimary, textSecondary, labelColor } = useTheme()
-  const entries = useStore((s: any) => s.entries) as LogEntry[]
-  const schedule = useStore((s: any) => s.schedule) as ScheduleDay[]
+  const entries = (useStore((s: any) => s.entries) as LogEntry[]) ?? []
+  const schedule = (useStore((s: any) => s.schedule) as ScheduleDay[]) ?? []
 
   const today = new Date()
   const todayStr = toDateStr(today)
@@ -205,7 +205,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
           ))}
         </div>
 
-        {/* Calendar grid — 52px cells */}
+        {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-0.5">
           {cells.map(({ dateStr, inMonth }, idx) => {
             if (!inMonth) {
@@ -250,7 +250,6 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                 className="relative rounded-xl flex flex-col justify-between overflow-hidden"
                 style={{ height: '52px', background: cellBg, padding: '5px 5px 4px' }}
               >
-                {/* ECATS deadline: red bottom strip */}
                 {isDeadline && (
                   <div
                     className="absolute bottom-0 inset-x-0 h-[2.5px]"
@@ -258,7 +257,6 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                   />
                 )}
 
-                {/* Top row: date number */}
                 <div className="flex items-start justify-between">
                   {isToday ? (
                     <div
@@ -278,9 +276,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                     </span>
                   )}
                   {holiday && (
-                    <span className="text-[7px] leading-tight flex-shrink-0" style={{ color: '#F59E0B' }}>
-                      ★
-                    </span>
+                    <span className="text-[7px] leading-tight flex-shrink-0" style={{ color: '#F59E0B' }}>★</span>
                   )}
                   {isDeadline && !holiday && (
                     <span
@@ -292,13 +288,12 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                   )}
                 </div>
 
-                {/* Bottom row: type pill + logged pill */}
                 <div className="flex items-end gap-0.5 w-full" style={{ minWidth: 0 }}>
                   {schedDay && (
                     <div
                       className="flex items-center min-w-0"
                       style={{
-                        background: TYPE_PILL_BG[schedDay.type],
+                        background: TYPE_PILL_BG[schedDay.type] ?? '#475569',
                         borderRadius: '4px',
                         padding: '1px 4px',
                         minHeight: '16px',
@@ -312,12 +307,12 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                         className="font-display font-bold truncate block w-full"
                         style={{
                           fontSize: '10px',
-                          color: TYPE_PILL_TEXT[schedDay.type],
+                          color: TYPE_PILL_TEXT[schedDay.type] ?? '#FFFFFF',
                           letterSpacing: '0.2px',
                           lineHeight: 1.2,
                         }}
                       >
-                        {TYPE_ABBREV[schedDay.type]}
+                        {TYPE_ABBREV[schedDay.type] ?? schedDay.type}
                       </span>
                     </div>
                   )}
@@ -355,7 +350,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
           })}
         </div>
 
-        {/* Legend — horizontal scroll */}
+        {/* Legend */}
         <div className="mt-3 -mx-0 overflow-x-auto">
           <div className="flex items-center gap-3 pb-0.5" style={{ minWidth: 'max-content', paddingLeft: '2px' }}>
             {([
@@ -390,7 +385,6 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
         </div>
       </div>
 
-      {/* Day detail sheet */}
       <AnimatePresence>
         {selectedDate && (
           <DayDetailSheet
