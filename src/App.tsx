@@ -14,6 +14,7 @@ import AuthScreen from './components/AuthScreen'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { useAuth } from './lib/useAuth'
+import { useSync } from './lib/useSync'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 import { motion } from 'framer-motion'
 
@@ -41,6 +42,7 @@ export default function App() {
   const { user, loading: authLoading } = useAuth()
 
   useAutoArchive()
+  useSync()
 
   const handleTabChange = (newTab: Tab) => {
     setDirection(TAB_ORDER.indexOf(newTab) > TAB_ORDER.indexOf(tab) ? 1 : -1)
