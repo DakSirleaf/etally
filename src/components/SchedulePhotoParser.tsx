@@ -12,8 +12,10 @@ interface ParsedDay {
   note?: string
 }
 
+const currentYear = new Date().getFullYear()
+
 const SYSTEM_PROMPT =
-  'You are a schedule parser. The image is a photo of a printed monthly hospital shift schedule for a single employee. The schedule shows a calendar grid with days of the week as column headers (Sunday through Saturday) and dates listed under each day with a shift code below each date. Extract every date that has a code. Code meanings: "N" means a night shift that STARTS the previous calendar day at 22:45 and ENDS on the listed date at 07:15, type is "scheduled". "VACD" means approved vacation day, type is "vacation", no times needed. Return ONLY a valid JSON array with no extra text: [{"date": "YYYY-MM-DD", "type": "scheduled"|"vacation", "startTime": "22:45", "endTime": "07:15"}]. For N shifts, set date to the listed date. Use year 2026.'  
+  `You are a schedule parser. The image is a photo of a printed monthly hospital shift schedule for a single employee. The schedule shows a calendar grid with days of the week as column headers (Sunday through Saturday) and dates listed under each day with a shift code below each date. Extract every date that has a code. Code meanings: "N" means a night shift that STARTS the previous calendar day at 22:45 and ENDS on the listed date at 07:15, type is "scheduled". "VACD" means approved vacation day, type is "vacation", no times needed. Any other shift codes should be mapped to "scheduled" with no times. Return ONLY a valid JSON array with no extra text: [{"date": "YYYY-MM-DD", "type": "scheduled"|"vacation", "startTime": "22:45", "endTime": "07:15"}]. Use year ${currentYear}. Return nothing but the JSON array.`
 
 const SUPPORTED_TYPES: Record<string, string> = {
   'image/jpeg': 'image/jpeg',
@@ -48,12 +50,13 @@ interface SchedulePhotoParserProps {
 
 export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoParserProps) {
   const { isDark, textPrimary, textSecondary, labelColor } = useTheme()
-  const setScheduleDay = useStore((s: any) => s.setScheduleDay)
+  const setScheduleDays = useStore((s: any) => s.setScheduleDays)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [parsedDays, setParsedDays] = useState<ParsedDay[] | null>(null)
   const [editedDays, setEditedDays] = useState<ParsedDay[] | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -67,6 +70,7 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
     setIsEditing(false)
     setError(null)
     setIsParsing(false)
+    setIsSaving(false)
   }
 
   const handleClose = () => {
@@ -118,13 +122,13 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
+          max_tokens: 1500,
           system: SYSTEM_PROMPT,
           messages: [{
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-              { type: 'text', text: 'Parse the schedule from this image.' },
+              { type: 'text', text: 'Parse all shift dates from this schedule image.' },
             ],
           }],
         }),
@@ -137,11 +141,13 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
 
       const data = await response.json()
       const text: string = data.content?.[0]?.text ?? ''
+      console.log('Claude raw response:', text)
+
       const match = text.match(/\[[\s\S]*\]/)
-      if (!match) throw new Error('No schedule data found')
+      if (!match) throw new Error('No schedule data found in the response. Try a clearer photo.')
 
       const parsed = JSON.parse(match[0]) as ParsedDay[]
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('Empty schedule')
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No shift dates were found in this image.')
 
       const validTypes = new Set<string>(['scheduled', 'ot', 'vacation', 'off', 'callout', 'aspirational', 'holiday'])
       const sanitised: ParsedDay[] = parsed
@@ -154,31 +160,38 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
           note: d.note,
         }))
 
-      if (sanitised.length === 0) throw new Error('Could not extract valid dates')
+      if (sanitised.length === 0) throw new Error('Could not read valid dates. Try a flatter, better-lit photo.')
+
       setParsedDays(sanitised)
       setEditedDays(sanitised.map((d) => ({ ...d })))
     } catch (err) {
-  setError('Could not read schedule — try a clearer photo or add days manually.')
-    console.error('Parse error:', err) 
+      console.error('Parse error:', err)
+      setError((err as Error).message ?? 'Could not read schedule — try a clearer photo or add days manually.')
     } finally {
       setIsParsing(false)
     }
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const days = isEditing ? editedDays : parsedDays
-    if (!days) return
-    days.forEach((d) => {
-      const day: ScheduleDay = {
+    if (!days || days.length === 0) return
+
+    setIsSaving(true)
+    try {
+      const scheduleDays: ScheduleDay[] = days.map((d) => ({
         date: d.date,
         type: d.type,
         startTime: d.startTime,
         endTime: d.endTime,
         note: d.note,
-      }
-      setScheduleDay(day)
-    })
-    handleClose()
+      }))
+      setScheduleDays(scheduleDays)
+      handleClose()
+    } catch (err) {
+      console.error('Save error:', err)
+      setError('Failed to save schedule. Please try again.')
+      setIsSaving(false)
+    }
   }
 
   const updateEditedType = (idx: number, type: DayType) => {
@@ -234,25 +247,16 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
             </motion.button>
           </div>
 
-          {/* Content area */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto px-4 pt-4">
-
-            {/* Upload zone or preview */}
             {!preview ? (
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full flex flex-col items-center justify-center gap-4 rounded-3xl mb-4"
-                style={{
-                  height: '220px',
-                  background: 'rgba(124,58,237,0.05)',
-                  border: '2px dashed rgba(124,58,237,0.35)',
-                }}
+                style={{ height: '220px', background: 'rgba(124,58,237,0.05)', border: '2px dashed rgba(124,58,237,0.35)' }}
               >
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)' }}
-                >
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.25)' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx="12" cy="13" r="4" stroke="#7C3AED" strokeWidth="1.8" />
@@ -265,14 +269,8 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
               </motion.button>
             ) : (
               <div className="relative mb-4">
-                {/* Image with scan line */}
                 <div className="relative rounded-2xl overflow-hidden" style={{ maxHeight: '220px' }}>
-                  <img
-                    src={preview}
-                    alt="Schedule"
-                    className="w-full object-cover"
-                    style={{ maxHeight: '220px' }}
-                  />
+                  <img src={preview} alt="Schedule" className="w-full object-cover" style={{ maxHeight: '220px' }} />
                   {isParsing && (
                     <motion.div
                       className="absolute inset-x-0 h-[2px] pointer-events-none"
@@ -283,10 +281,7 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                     />
                   )}
                   {isParsing && (
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ background: 'rgba(37,99,235,0.06)' }}
-                    />
+                    <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(37,99,235,0.06)' }} />
                   )}
                 </div>
                 <motion.button
@@ -308,17 +303,12 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
               onChange={handleFileChange}
             />
 
-            {/* Error */}
             {error && (
-              <div
-                className="rounded-2xl px-4 py-3 mb-3"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-              >
+              <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                 <p className="text-[11px] font-body" style={{ color: '#EF4444' }}>{error}</p>
               </div>
             )}
 
-            {/* Parse button — shown only before results */}
             {!parsedDays && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -326,27 +316,20 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                 disabled={!file || isParsing}
                 className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest mb-4"
                 style={{
-                  background: file && !isParsing
-                    ? 'linear-gradient(135deg, #5B21B6, #7C3AED)'
-                    : 'rgba(255,255,255,0.06)',
+                  background: file && !isParsing ? 'linear-gradient(135deg, #5B21B6, #7C3AED)' : 'rgba(255,255,255,0.06)',
                   color: file && !isParsing ? '#FFFFFF' : '#475569',
                 }}
               >
                 {isParsing ? (
-                  <motion.span
-                    animate={{ opacity: [1, 0.5, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                  >
+                  <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
                     READING YOUR SCHEDULE…
                   </motion.span>
-                ) : (
-                  'PARSE SCHEDULE'
-                )}
+                ) : 'PARSE SCHEDULE'}
               </motion.button>
             )}
           </div>
 
-          {/* Results panel — slides up from bottom */}
+          {/* Results panel */}
           <AnimatePresence>
             {parsedDays && displayDays && (
               <motion.div
@@ -362,7 +345,6 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                   maxHeight: '55dvh',
                 }}
               >
-                {/* Header row */}
                 <div className="flex items-center justify-between px-4 pt-3 pb-2">
                   <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: labelColor }}>
                     EXTRACTED — {displayDays.length} DAYS
@@ -380,7 +362,6 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                   </motion.button>
                 </div>
 
-                {/* Day list */}
                 <div className="overflow-y-auto px-4" style={{ maxHeight: 'calc(55dvh - 130px)' }}>
                   <div className="flex flex-col gap-1.5 pb-2">
                     {displayDays.map((d, i) => (
@@ -389,21 +370,14 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                         className="flex items-center gap-3 rounded-xl px-3 py-2"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
                       >
-                        <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ background: TYPE_COLORS[d.type] ?? '#94A3B8' }}
-                        />
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TYPE_COLORS[d.type] ?? '#94A3B8' }} />
                         <span className="font-display font-bold text-xs" style={{ color: textPrimary }}>{d.date}</span>
                         {isEditing ? (
                           <select
                             value={d.type}
                             onChange={(e) => updateEditedType(i, e.target.value as DayType)}
                             className="ml-auto text-[10px] font-body rounded-lg px-2 py-1 focus:outline-none"
-                            style={{
-                              background: 'rgba(255,255,255,0.08)',
-                              color: textPrimary,
-                              border: '1px solid rgba(255,255,255,0.1)',
-                            }}
+                            style={{ background: 'rgba(255,255,255,0.08)', color: textPrimary, border: '1px solid rgba(255,255,255,0.1)' }}
                           >
                             {TYPE_OPTIONS.map((o) => (
                               <option key={o.value} value={o.value}>{o.label}</option>
@@ -424,15 +398,15 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
                   </div>
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex flex-col gap-2 px-4 pt-2">
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     onClick={handleConfirm}
+                    disabled={isSaving}
                     className="w-full py-3.5 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
-                    style={{ background: 'linear-gradient(135deg, #065F46, #10B981)' }}
+                    style={{ background: isSaving ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg, #065F46, #10B981)' }}
                   >
-                    LOOKS GOOD — SAVE ALL
+                    {isSaving ? 'SAVING…' : 'LOOKS GOOD — SAVE ALL'}
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.97 }}
