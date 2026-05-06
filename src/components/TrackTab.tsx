@@ -32,10 +32,11 @@ const SHIFT_REASONS = [
 ]
 
 const CALLOUT_PAY_TYPES: Record<StaffRole, CalloutPayType[]> = {
-  RN:  ['Sick Time', 'AL Day'],
-  LPN: ['Sick Time', 'Vacation Time', 'AL Day'],
-  HST: ['Sick Time', 'Vacation Time', 'AL Day'],
-  HSA: ['Sick Time', 'Vacation Time', 'AL Day'],
+  RN:      ['Sick Time', 'AL Day'],
+  LPN:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  HST:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  HSA:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  POOL_RN: [],
 }
 
 const SHIFT_TYPES: ShiftType[] = ['REG', 'OT', 'CALLOUT']
@@ -76,6 +77,7 @@ export default function TrackTab() {
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor, toggleBg, selectColor } = useTheme()
 
   const defaults = getDefaultTimes(shiftPreference)
+  const isPoolRN = role === 'POOL_RN'
 
   const [shiftType, setShiftType] = useState<ShiftType>('REG')
   const [date, setDate] = useState(todayStr())
@@ -109,36 +111,26 @@ export default function TrackTab() {
   }, [pendingTrackDate, setPendingTrackDate])
 
   useEffect(() => {
-    if (calloutPayType === 'AL Day' && alRemaining === 0) {
-      setCalloutPayType('Sick Time')
-    }
+    if (calloutPayType === 'AL Day' && alRemaining === 0) setCalloutPayType('Sick Time')
   }, [calloutPayType, alRemaining])
 
   const handleSave = () => {
     if (shiftType === 'CALLOUT') {
       addEntry({
-        id: Date.now(),
-        date,
-        startTime: '--',
-        endTime: '--',
-        reg: '0.00',
-        ot: '0.00',
-        reason: calloutPayType,
-        type: 'CALLOUT',
-        normalEnd: '--',
-        calloutPayType,
+        id: Date.now(), date,
+        startTime: '--', endTime: '--',
+        reg: '0.00', ot: '0.00',
+        reason: isPoolRN ? 'No Coverage' : calloutPayType,
+        type: 'CALLOUT', normalEnd: '--',
+        calloutPayType: isPoolRN ? undefined : calloutPayType,
       })
     } else {
       const result = calculateHours(start, end, shiftType)
       addEntry({
-        id: Date.now(),
-        date,
-        startTime: start,
-        endTime: end,
-        reg: result.reg,
-        ot: result.ot,
-        reason,
-        type: shiftType,
+        id: Date.now(), date,
+        startTime: start, endTime: end,
+        reg: result.reg, ot: result.ot,
+        reason, type: shiftType,
         normalEnd: result.normalEnd,
       })
     }
@@ -148,15 +140,10 @@ export default function TrackTab() {
 
   const handleDayOff = () => {
     addEntry({
-      id: Date.now(),
-      date,
-      startTime: '--',
-      endTime: '--',
-      reg: '0.00',
-      ot: '0.00',
-      reason: 'OFF',
-      type: 'REG',
-      normalEnd: '--',
+      id: Date.now(), date,
+      startTime: '--', endTime: '--',
+      reg: '0.00', ot: '0.00',
+      reason: 'OFF', type: 'REG', normalEnd: '--',
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -166,7 +153,6 @@ export default function TrackTab() {
   const accentColor = SHIFT_COLORS[shiftType]
   const dateDisplay = formatDateDisplay(date)
   const hasOT = shiftType !== 'CALLOUT' && parseFloat(calc.ot) > 0
-
   const pillLeft = typeIndex === 0 ? '4px' : `calc(${typeIndex * 33.333}% + 2px)`
   const pillWidth = typeIndex === 0 || typeIndex === 2 ? 'calc(33.333% - 6px)' : 'calc(33.333% - 4px)'
 
@@ -179,7 +165,7 @@ export default function TrackTab() {
         initial="hidden"
         animate="show"
       >
-        {/* 3-Way Shift Type Toggle */}
+        {/* Shift Type Toggle */}
         <motion.div
           variants={tileVariants}
           className="relative flex rounded-2xl p-1 flex-shrink-0"
@@ -203,7 +189,7 @@ export default function TrackTab() {
           ))}
         </motion.div>
 
-        {/* Date tile */}
+        {/* Date */}
         <motion.div variants={tileVariants} className="flex-shrink-0">
           <motion.button
             whileTap={{ scale: 0.96 }}
@@ -243,42 +229,42 @@ export default function TrackTab() {
                 <span className="text-[10px] text-amber-200 mt-1 z-10 font-body">This day will be logged as a callout</span>
               </div>
 
-              <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: surface, border: surfaceBorder }}>
-                <div>
-                  <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>AL DAYS REMAINING</span>
-                  <div className="flex items-center gap-2 mt-1">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center"
-                        style={{ background: i < alRemaining ? 'linear-gradient(135deg, #D97706, #F59E0B)' : isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }}
-                      >
-                        <span className="text-[10px] font-display font-bold" style={{ color: i < alRemaining ? 'white' : isDark ? '#334155' : '#CBD5E1' }}>{i + 1}</span>
-                      </div>
-                    ))}
-                    <span className="text-xs font-display font-bold" style={{ color: alRemaining === 0 ? '#EF4444' : textSecondary }}>
-                      {alRemaining === 0 ? 'NONE LEFT' : `${alRemaining} of 3`}
-                    </span>
-                  </div>
+              {isPoolRN ? (
+                <div className="rounded-2xl px-4 py-3" style={{ background: surface, border: surfaceBorder }}>
+                  <p className="text-[11px] font-body" style={{ color: textSecondary }}>Pool nurses do not have callout pay coverage.</p>
                 </div>
-                <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: labelColor }}>THIS YEAR</span>
-              </div>
-
-              <select
-                value={calloutPayType}
-                onChange={(e) => setCalloutPayType(e.target.value as CalloutPayType)}
-                className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none transition"
-                style={{ background: surface, border: surfaceBorder, color: selectColor }}
-              >
-                {(availablePayTypes as string[]).map((pt) => {
-                  const disabled = pt === 'AL Day' && alRemaining === 0
-                  return (
-                    <option key={pt} value={pt} disabled={disabled}>
-                      {pt}{disabled ? ' (limit reached)' : ''}
-                    </option>
-                  )
-                })}
-              </select>
+              ) : (
+                <>
+                  <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: surface, border: surfaceBorder }}>
+                    <div>
+                      <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>AL DAYS REMAINING</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        {[0, 1, 2].map((i) => (
+                          <div key={i} className="w-6 h-6 rounded-lg flex items-center justify-center"
+                            style={{ background: i < alRemaining ? 'linear-gradient(135deg, #D97706, #F59E0B)' : isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }}>
+                            <span className="text-[10px] font-display font-bold" style={{ color: i < alRemaining ? 'white' : isDark ? '#334155' : '#CBD5E1' }}>{i + 1}</span>
+                          </div>
+                        ))}
+                        <span className="text-xs font-display font-bold" style={{ color: alRemaining === 0 ? '#EF4444' : textSecondary }}>
+                          {alRemaining === 0 ? 'NONE LEFT' : `${alRemaining} of 3`}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: labelColor }}>THIS YEAR</span>
+                  </div>
+                  <select
+                    value={calloutPayType}
+                    onChange={(e) => setCalloutPayType(e.target.value as CalloutPayType)}
+                    className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none transition"
+                    style={{ background: surface, border: surfaceBorder, color: selectColor }}
+                  >
+                    {(availablePayTypes as string[]).map((pt) => {
+                      const disabled = pt === 'AL Day' && alRemaining === 0
+                      return <option key={pt} value={pt} disabled={disabled}>{pt}{disabled ? ' (limit reached)' : ''}</option>
+                    })}
+                  </select>
+                </>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -290,70 +276,56 @@ export default function TrackTab() {
               className="flex flex-col gap-2.5"
             >
               <div className="grid grid-cols-2 gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setActivePicker('start')}
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setActivePicker('start')}
                   className="rounded-2xl px-3 py-3 text-left flex flex-col justify-between"
-                  style={{ background: surface, border: surfaceBorder }}
-                >
+                  style={{ background: surface, border: surfaceBorder }}>
                   <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>START</span>
                   <span className="font-display font-bold text-base tabular-nums mt-1 leading-tight" style={{ color: '#2563EB' }}>{to12hr(start)}</span>
                   <span className="text-[8px] font-display font-semibold tracking-widest mt-0.5" style={{ color: labelColor }}>TAP</span>
                 </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setActivePicker('end')}
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setActivePicker('end')}
                   className="rounded-2xl px-3 py-3 text-left flex flex-col justify-between"
-                  style={{ background: surface, border: surfaceBorder }}
-                >
+                  style={{ background: surface, border: surfaceBorder }}>
                   <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>END</span>
-                  <span
-                    className="font-display font-bold text-base tabular-nums mt-1 leading-tight"
-                    style={{ color: shiftType === 'OT' ? '#DB2777' : '#2563EB' }}
-                  >
-                    {to12hr(end)}
-                  </span>
+                  <span className="font-display font-bold text-base tabular-nums mt-1 leading-tight"
+                    style={{ color: shiftType === 'OT' ? '#DB2777' : '#2563EB' }}>{to12hr(end)}</span>
                   <span className="text-[8px] font-display font-semibold tracking-widest mt-0.5" style={{ color: labelColor }}>TAP</span>
                 </motion.button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div
-                  className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
-                  style={{ background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)' }}
-                >
+                <div className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
+                  style={{ background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)' }}>
                   <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full opacity-10 bg-white" />
                   <span className="text-[8px] font-display font-bold tracking-widest text-blue-200 z-10">REGULAR</span>
                   <span className="text-4xl font-display font-bold text-white tabular-nums z-10 leading-none mt-1">{calc.reg}</span>
                   <span className="text-[9px] text-blue-200 mt-1 z-10 font-display font-semibold">HRS</span>
                 </div>
-
-                <div
-                  className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
+                <div className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
                   style={{
-                    background: hasOT
-                      ? 'linear-gradient(135deg, #9D174D 0%, #EC4899 100%)'
-                      : isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
+                    background: hasOT ? 'linear-gradient(135deg, #9D174D 0%, #EC4899 100%)' : isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
                     border: !hasOT ? surfaceBorder : 'none',
-                  }}
-                >
+                  }}>
                   <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full opacity-10 bg-white" />
-                  <span className="text-[8px] font-display font-bold tracking-widest z-10" style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>OVERTIME</span>
-                  <span className="text-4xl font-display font-bold tabular-nums z-10 leading-none mt-1" style={{ color: hasOT ? 'white' : isDark ? '#1E293B' : '#CBD5E1' }}>{calc.ot}</span>
-                  <span className="text-[9px] mt-1 z-10 font-display font-semibold" style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>HRS</span>
+                  <span className="text-[8px] font-display font-bold tracking-widest z-10"
+                    style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>OVERTIME</span>
+                  <span className="text-4xl font-display font-bold tabular-nums z-10 leading-none mt-1"
+                    style={{ color: hasOT ? 'white' : isDark ? '#1E293B' : '#CBD5E1' }}>{calc.ot}</span>
+                  <span className="text-[9px] mt-1 z-10 font-display font-semibold"
+                    style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>HRS</span>
                 </div>
               </div>
 
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
+              {isPoolRN && (
+                <div className="rounded-2xl px-4 py-2" style={{ background: isDark ? 'rgba(37,99,235,0.08)' : '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)' }}>
+                  <p className="text-[10px] font-body" style={{ color: '#3B82F6' }}>Pool RN: OT applies after 40 hrs worked in the same week.</p>
+                </div>
+              )}
+
+              <select value={reason} onChange={(e) => setReason(e.target.value)}
                 className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none transition"
-                style={{ background: surface, border: surfaceBorder, color: selectColor }}
-              >
-                {SHIFT_REASONS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
+                style={{ background: surface, border: surfaceBorder, color: selectColor }}>
+                {SHIFT_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </motion.div>
           )}
@@ -369,13 +341,7 @@ export default function TrackTab() {
           >
             <AnimatePresence mode="wait">
               {saved ? (
-                <motion.span
-                  key="saved"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="flex items-center justify-center gap-2"
-                >
+                <motion.span key="saved" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="flex items-center justify-center gap-2">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M5 12l5 5L20 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -389,20 +355,16 @@ export default function TrackTab() {
             </AnimatePresence>
           </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleDayOff}
+          <motion.button whileTap={{ scale: 0.97 }} onClick={handleDayOff}
             className="w-full py-3 rounded-2xl font-display font-semibold text-xs tracking-widest transition"
-            style={{ background: surface, border: surfaceBorder, color: isDark ? '#475569' : '#94A3B8' }}
-          >
+            style={{ background: surface, border: surfaceBorder, color: isDark ? '#475569' : '#94A3B8' }}>
             MARK DAY OFF · NO WORK
           </motion.button>
 
           {entries.length > 0 && (() => {
             const last = [...entries].sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
             return (
-              <motion.button
-                whileTap={{ scale: 0.97 }}
+              <motion.button whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   if (last.type !== 'CALLOUT' && last.reason !== 'OFF') {
                     setShiftType(last.type)
@@ -412,8 +374,7 @@ export default function TrackTab() {
                   }
                 }}
                 className="w-full py-3 rounded-2xl font-display font-semibold text-xs tracking-widest transition flex items-center justify-center gap-2"
-                style={{ background: surface, border: surfaceBorder, color: isDark ? '#334155' : '#94A3B8' }}
-              >
+                style={{ background: surface, border: surfaceBorder, color: isDark ? '#334155' : '#94A3B8' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                   <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
                   <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -425,28 +386,9 @@ export default function TrackTab() {
         </motion.div>
       </motion.div>
 
-      <DatePickerSheet
-        isOpen={datePickerOpen}
-        value={date}
-        onClose={() => setDatePickerOpen(false)}
-        onConfirm={(d: string) => setDate(d)}
-      />
-      <TimePickerSheet
-        isOpen={activePicker === 'start'}
-        title="Set Start Time"
-        value={start}
-        accentColor="#2563EB"
-        onClose={() => setActivePicker(null)}
-        onConfirm={(t: string) => setStart(t)}
-      />
-      <TimePickerSheet
-        isOpen={activePicker === 'end'}
-        title="Set End Time"
-        value={end}
-        accentColor={shiftType === 'OT' ? '#DB2777' : '#2563EB'}
-        onClose={() => setActivePicker(null)}
-        onConfirm={(t: string) => setEnd(t)}
-      />
+      <DatePickerSheet isOpen={datePickerOpen} value={date} onClose={() => setDatePickerOpen(false)} onConfirm={(d: string) => setDate(d)} />
+      <TimePickerSheet isOpen={activePicker === 'start'} title="Set Start Time" value={start} accentColor="#2563EB" onClose={() => setActivePicker(null)} onConfirm={(t: string) => setStart(t)} />
+      <TimePickerSheet isOpen={activePicker === 'end'} title="Set End Time" value={end} accentColor={shiftType === 'OT' ? '#DB2777' : '#2563EB'} onClose={() => setActivePicker(null)} onConfirm={(t: string) => setEnd(t)} />
     </>
   )
 }
