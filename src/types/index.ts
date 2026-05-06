@@ -1,12 +1,12 @@
 export type ShiftType = 'REG' | 'OT' | 'CALLOUT'
-export type StaffRole = 'RN' | 'HST' | 'HSA' | 'LPN'
+export type StaffRole = 'RN' | 'LPN' | 'HST' | 'HSA' | 'POOL_RN'
 export type CalloutPayType = 'Sick Time' | 'Vacation Time' | 'AL Day'
 export type Theme = 'dark' | 'light'
 
 export type DayType = 'scheduled' | 'ot' | 'callout' | 'vacation' | 'aspirational' | 'off' | 'holiday'
 
 export interface ScheduleDay {
-  date: string // YYYY-MM-DD
+  date: string
   type: DayType
   note?: string
   startTime?: string
@@ -28,10 +28,10 @@ export interface LogEntry {
 }
 
 export interface VaultPeriod {
-  id: string // "YYYY-MM-DD_YYYY-MM-DD"
+  id: string
   start: string
   end: string
-  closedAt: string // ISO
+  closedAt: string
   entries: LogEntry[]
   totals: { reg: number; ot: number; shifts: number; callouts: number }
   edited?: boolean
