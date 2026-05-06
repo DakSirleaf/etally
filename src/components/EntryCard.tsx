@@ -48,21 +48,20 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
       className="relative rounded-3xl overflow-hidden mb-3"
       style={{
         background: surface,
-        border: surfaceBorder,
+        borderTop: `2px solid ${accentColor}`,
+        borderLeft: surfaceBorder,
+        borderRight: surfaceBorder,
+        borderBottom: surfaceBorder,
         boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(15,23,42,0.06)',
       }}
     >
-      {/* Left accent stripe */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-3xl" style={{ background: accentColor }} />
-
-      <div className="pl-5 pr-4 py-4">
+      <div className="pl-4 pr-4 py-4">
         <div className="flex items-start justify-between mb-2">
           <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: isDark ? '#475569' : '#94A3B8' }}>
             {formatDate(entry.date)}
           </span>
 
           <div className="flex items-center gap-1.5">
-            {/* Type badge */}
             {isOff ? (
               <span className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
                 style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#334155' : '#94A3B8' }}>
@@ -90,7 +89,6 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
               </div>
             )}
 
-            {/* Edit button */}
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => { setConfirmDelete(false); onEdit(entry) }}
@@ -99,12 +97,11 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
               aria-label="Edit entry"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
 
-            {/* Delete button */}
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => setConfirmDelete(!confirmDelete)}
@@ -113,7 +110,7 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
               aria-label="Delete entry"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={confirmDelete ? '#F43F5E' : (isDark ? '#475569' : '#94A3B8')} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={confirmDelete ? '#F43F5E' : (isDark ? '#475569' : '#94A3B8')} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
           </div>
@@ -123,7 +120,6 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
           <p className="text-[11px] font-body leading-relaxed" style={{ color: textSecondary }}>{detail}</p>
         )}
 
-        {/* Confirm delete row */}
         <AnimatePresence>
           {confirmDelete && (
             <motion.div
