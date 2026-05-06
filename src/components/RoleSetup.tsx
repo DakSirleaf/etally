@@ -9,6 +9,7 @@ const ROLES = [
   { role: 'LPN' as StaffRole, label: 'Licensed Practical Nurse', abbr: 'LPN', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
   { role: 'HST' as StaffRole, label: 'Health Services Technician', abbr: 'HST', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
   { role: 'HSA' as StaffRole, label: 'Health Services Assistant', abbr: 'HSA', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
+  { role: 'POOL_RN' as StaffRole, label: 'Pool Registered Nurse', abbr: 'Pool', desc: 'Per diem · OT after 40 hrs/week · No callout coverage' },
 ]
 
 const SHIFTS = [
@@ -62,16 +63,7 @@ export default function RoleSetup() {
 
         <div className="flex gap-2 mb-8">
           {[1, 2].map(s => (
-            <div
-              key={s}
-              style={{
-                width: s === step ? '24px' : '8px',
-                height: '8px',
-                borderRadius: '100px',
-                background: s === step ? '#0a0a14' : 'rgba(15,17,38,0.15)',
-                transition: 'all 0.3s ease',
-              }}
-            />
+            <div key={s} style={{ width: s === step ? '24px' : '8px', height: '8px', borderRadius: '100px', background: s === step ? '#0a0a14' : 'rgba(15,17,38,0.15)', transition: 'all 0.3s ease' }} />
           ))}
         </div>
 
@@ -85,12 +77,8 @@ export default function RoleSetup() {
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               style={{ width: '100%', maxWidth: '340px' }}
             >
-              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>
-                What is your role?
-              </h2>
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>
-                This sets your callout pay options.
-              </p>
+              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>What is your role?</h2>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>This sets your callout pay options.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {ROLES.map(({ role, label, abbr, desc }, i) => (
                   <motion.button
@@ -102,12 +90,8 @@ export default function RoleSetup() {
                     onClick={() => handleRoleSelect(role)}
                     style={cardStyle}
                   >
-                    <div style={{
-                      width: '44px', height: '44px', borderRadius: '12px',
-                      background: '#0a0a14', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>{abbr}</span>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#0a0a14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '10px', fontWeight: 700, color: '#fff', letterSpacing: '0.5px' }}>{abbr}</span>
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: '#0a0a14', margin: 0 }}>{label}</p>
@@ -131,23 +115,15 @@ export default function RoleSetup() {
             >
               <button
                 onClick={() => setStep(1)}
-                style={{
-                  fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#8a8a95',
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px',
-                }}
+                style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#8a8a95', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                   <path d="M15 18l-6-6 6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Back
               </button>
-              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>
-                Which shift do you work?
-              </h2>
-              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>
-                Sets your default start and end times.
-              </p>
+              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>Which shift do you work?</h2>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>Sets your default start and end times.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {SHIFTS.map(({ id, label, time }, i) => (
                   <motion.button
@@ -169,9 +145,7 @@ export default function RoleSetup() {
                   </motion.button>
                 ))}
               </div>
-              <p className="text-center mt-4" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95' }}>
-                You can change this anytime in Help & Support
-              </p>
+              <p className="text-center mt-4" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95' }}>You can change this anytime in Help & Support</p>
             </motion.div>
           )}
         </AnimatePresence>
