@@ -8,6 +8,8 @@ import {
   periodId,
 } from '../lib/payPeriod'
 
+export type ShiftPreference = 'night' | 'evening' | 'day'
+
 export interface Snapshot {
   id: number
   label: string
@@ -34,6 +36,7 @@ interface StoreState {
   theme: Theme
   schedule: ScheduleDay[]
   pendingTrackDate: string | null
+  shiftPreference: ShiftPreference | null
 
   addEntry: (entry: LogEntry) => void
   removeEntry: (id: number) => void
@@ -43,6 +46,7 @@ interface StoreState {
   deleteSnapshot: (id: number) => void
   setRole: (role: StaffRole) => void
   toggleTheme: () => void
+  setShiftPreference: (pref: ShiftPreference) => void
 
   archiveClosedPeriods: () => void
   updateVaultPeriod: (period: VaultPeriod) => void
@@ -64,9 +68,10 @@ export const useStore = create<StoreState>()(
       vault: [],
       migrationHandled: false,
       role: null,
-      theme: 'dark',
+      theme: 'light',
       schedule: [],
       pendingTrackDate: null,
+      shiftPreference: null,
 
       addEntry: (entry) =>
         set((state) => ({ entries: [...state.entries, entry] })),
@@ -95,6 +100,7 @@ export const useStore = create<StoreState>()(
       setRole: (role) => set({ role }),
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setShiftPreference: (pref) => set({ shiftPreference: pref }),
 
       archiveClosedPeriods: () => {
         const state = get()
@@ -103,7 +109,6 @@ export const useStore = create<StoreState>()(
         if (toArchive.length === 0) return
 
         const remaining = state.entries.filter((e) => isDateInPeriod(e.date, current))
-
         const groups = new Map<string, { start: string; end: string; entries: LogEntry[] }>()
         for (const entry of toArchive) {
           const period = getPayPeriodForDate(entry.date)
@@ -188,7 +193,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'etally-v1',
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
           return {
@@ -202,6 +207,12 @@ export const useStore = create<StoreState>()(
             ...persistedState,
             schedule: [],
             pendingTrackDate: null,
+          }
+        }
+        if (version < 4) {
+          return {
+            ...persistedState,
+            shiftPreference: null,
           }
         }
         return persistedState as StoreState

@@ -1,119 +1,181 @@
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store/useStore'
 import type { StaffRole } from '../types'
+import type { ShiftPreference } from '../store/useStore'
 
-const roles: { role: StaffRole; label: string; desc: string; color: string }[] = [
-  {
-    role: 'RN',
-    label: 'RN',
-    desc: 'Registered Nurse — Callout coverage: Sick Time or AL Day',
-    color: '#3B82F6',
-  },
-  {
-    role: 'LPN',
-    label: 'LPN',
-    desc: 'Licensed Practical Nurse — Callout coverage: Sick Time, Vacation Time, or AL Day',
-    color: '#6366F1',
-  },
-  {
-    role: 'HST',
-    label: 'HST',
-    desc: 'Health Services Technician — Callout coverage: Sick Time, Vacation Time, or AL Day',
-    color: '#8B5CF6',
-  },
-  {
-    role: 'HSA',
-    label: 'HSA',
-    desc: 'Health Services Assistant — Callout coverage: Sick Time, Vacation Time, or AL Day',
-    color: '#06B6D4',
-  },
+const ROLES = [
+  { role: 'RN' as StaffRole, label: 'Registered Nurse', abbr: 'RN', desc: 'Callout: Sick Time or AL Day' },
+  { role: 'LPN' as StaffRole, label: 'Licensed Practical Nurse', abbr: 'LPN', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
+  { role: 'HST' as StaffRole, label: 'Health Services Technician', abbr: 'HST', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
+  { role: 'HSA' as StaffRole, label: 'Health Services Assistant', abbr: 'HSA', desc: 'Callout: Sick Time, Vacation Time, or AL Day' },
 ]
+
+const SHIFTS = [
+  { id: 'night' as ShiftPreference, label: 'Night Shift', time: '10:45 PM – 7:15 AM' },
+  { id: 'evening' as ShiftPreference, label: 'Evening Shift', time: '2:45 PM – 11:15 PM' },
+  { id: 'day' as ShiftPreference, label: 'Day Shift', time: '6:45 AM – 3:15 PM' },
+]
+
+const cardStyle = {
+  background: '#ffffff',
+  border: '1px solid rgba(15,17,38,0.08)',
+  borderRadius: '16px',
+  padding: '16px',
+  cursor: 'pointer',
+  width: '100%',
+  textAlign: 'left' as const,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+}
 
 export default function RoleSetup() {
   const setRole = useStore((s) => s.setRole)
+  const setShiftPreference = useStore((s: any) => s.setShiftPreference)
+  const [step, setStep] = useState<1 | 2>(1)
+  const [pendingRole, setPendingRole] = useState<StaffRole | null>(null)
+
+  const handleRoleSelect = (role: StaffRole) => {
+    setPendingRole(role)
+    setStep(2)
+  }
+
+  const handleShiftSelect = (pref: ShiftPreference) => {
+    if (pendingRole) {
+      setRole(pendingRole)
+      setShiftPreference(pref)
+    }
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: 'linear-gradient(160deg, #050912 0%, #0A1128 60%, #080D1E 100%)' }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
+      style={{ background: '#eef0f8' }}
     >
-      {/* Ambient glow */}
-      <div
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)' }}
-      />
+      <div style={{ height: '4px', background: '#0a0a14', flexShrink: 0 }} />
 
-      <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.94 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 240, damping: 28, delay: 0.1 }}
-        className="w-full max-w-sm relative z-10"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: -24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18, type: 'spring', stiffness: 300, damping: 28 }}
-        >
-          <h1 className="font-display font-extrabold text-5xl text-white tracking-tight mb-1 leading-none">
-            eTally
-          </h1>
-          <p className="font-body text-sm text-blue-400 mb-8 tracking-wide">
-            A time tracker for eCats
-          </p>
-        </motion.div>
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-[10px] font-display font-bold tracking-widest mb-4"
-          style={{ color: '#475569' }}
-        >
-          SELECT YOUR ROLE TO GET STARTED
-        </motion.p>
-
-        <div className="flex flex-col gap-3">
-          {roles.map(({ role, label, desc, color }, i) => (
-            <motion.button
-              key={role}
-              initial={{ opacity: 0, x: -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.36 + i * 0.09, type: 'spring', stiffness: 260, damping: 28 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setRole(role)}
-              className="w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all"
+        <div className="flex gap-2 mb-8">
+          {[1, 2].map(s => (
+            <div
+              key={s}
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.09)',
+                width: s === step ? '24px' : '8px',
+                height: '8px',
+                borderRadius: '100px',
+                background: s === step ? '#0a0a14' : 'rgba(15,17,38,0.15)',
+                transition: 'all 0.3s ease',
               }}
-            >
-              <span
-                className="font-display font-extrabold text-2xl w-12 flex-shrink-0"
-                style={{ color }}
-              >
-                {label}
-              </span>
-              <span className="font-body text-xs leading-relaxed" style={{ color: '#94A3B8' }}>
-                {desc}
-              </span>
-            </motion.button>
+            />
           ))}
         </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.65 }}
-          className="text-center text-[10px] font-body mt-6"
-          style={{ color: '#334155' }}
-        >
-          You can change your role anytime via the ⓘ button
-        </motion.p>
-      </motion.div>
+        <AnimatePresence mode="wait">
+          {step === 1 ? (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              style={{ width: '100%', maxWidth: '340px' }}
+            >
+              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>
+                What is your role?
+              </h2>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>
+                This sets your callout pay options.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {ROLES.map(({ role, label, abbr, desc }, i) => (
+                  <motion.button
+                    key={role}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleRoleSelect(role)}
+                    style={cardStyle}
+                  >
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '12px',
+                      background: '#0a0a14', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', fontWeight: 700, color: '#fff', letterSpacing: '1px' }}>{abbr}</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', fontWeight: 600, color: '#0a0a14', margin: 0 }}>{label}</p>
+                      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95', margin: '2px 0 0' }}>{desc}</p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18l6-6-6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              style={{ width: '100%', maxWidth: '340px' }}
+            >
+              <button
+                onClick={() => setStep(1)}
+                style={{
+                  fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#8a8a95',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 18l-6-6 6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Back
+              </button>
+              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>
+                Which shift do you work?
+              </h2>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '24px' }}>
+                Sets your default start and end times.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {SHIFTS.map(({ id, label, time }, i) => (
+                  <motion.button
+                    key={id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleShiftSelect(id)}
+                    style={{ ...cardStyle, justifyContent: 'space-between' }}
+                  >
+                    <div>
+                      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 600, color: '#0a0a14', margin: 0 }}>{label}</p>
+                      <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: '12px', color: '#8a8a95', margin: '3px 0 0' }}>{time}</p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18l6-6-6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </motion.button>
+                ))}
+              </div>
+              <p className="text-center mt-4" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95' }}>
+                You can change this anytime in Help & Support
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   )
 }
