@@ -17,11 +17,13 @@ const SHIFT_REASONS = [
   'Standard Shift','Late Relief','Patient Care','Incident Report',
   'CPR Training','Nursing Ed','Mandatory - State of Emergency',
 ]
+
 const CALLOUT_PAY_TYPES: Record<StaffRole, CalloutPayType[]> = {
-  RN:  ['Sick Time', 'AL Day'],
-  HST: ['Sick Time', 'Vacation Time', 'AL Day'],
-  HSA: ['Sick Time', 'Vacation Time', 'AL Day'],
-  LPN: ['Sick Time', 'Vacation Time', 'AL Day'],
+  RN:      ['Sick Time', 'AL Day'],
+  LPN:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  HST:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  HSA:     ['Sick Time', 'Vacation Time', 'AL Day'],
+  POOL_RN: [],
 }
 
 function formatDateDisplay(dateStr: string) {
@@ -99,7 +101,6 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
         <div className="overflow-y-auto px-5 pb-4 flex flex-col gap-3" style={{ maxHeight: 'calc(92dvh - 3rem)' }}>
           <h2 className="font-display font-extrabold text-lg" style={{ color: textPrimary }}>Edit Entry</h2>
 
-          {/* Shift type toggle */}
           <div className="relative flex rounded-2xl p-1" style={{ background: toggleBg }}>
             <motion.div
               className="absolute top-1 bottom-1 rounded-xl shadow-sm"
@@ -115,7 +116,6 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
             ))}
           </div>
 
-          {/* Date */}
           <motion.button whileTap={{ scale: 0.96 }} onClick={() => setDatePickerOpen(true)}
             className="w-full rounded-2xl px-4 py-3 text-left flex items-center justify-between"
             style={{ background: surface, border: surfaceBorder }}>
@@ -148,11 +148,17 @@ export default function EditEntrySheet({ entry, onClose }: Props) {
           )}
 
           {shiftType === 'CALLOUT' ? (
-            <select value={calloutPayType} onChange={(e) => setCalloutPayType(e.target.value as CalloutPayType)}
-              className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none"
-              style={{ background: surface, border: surfaceBorder, color: selectColor }}>
-              {(availablePayTypes as string[]).map((pt) => <option key={pt} value={pt}>{pt}</option>)}
-            </select>
+            availablePayTypes.length > 0 ? (
+              <select value={calloutPayType} onChange={(e) => setCalloutPayType(e.target.value as CalloutPayType)}
+                className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none"
+                style={{ background: surface, border: surfaceBorder, color: selectColor }}>
+                {(availablePayTypes as string[]).map((pt) => <option key={pt} value={pt}>{pt}</option>)}
+              </select>
+            ) : (
+              <div className="rounded-2xl px-4 py-3" style={{ background: surface, border: surfaceBorder }}>
+                <p className="text-[11px] font-body" style={{ color: textSecondary }}>Pool nurses do not have callout pay coverage.</p>
+              </div>
+            )
           ) : (
             <select value={reason} onChange={(e) => setReason(e.target.value)}
               className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none"

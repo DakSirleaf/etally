@@ -55,7 +55,9 @@ interface StoreState {
   setMigrationHandled: (value: boolean) => void
 
   setScheduleDay: (day: ScheduleDay) => void
+  setScheduleDays: (days: ScheduleDay[]) => void
   removeScheduleDay: (date: string) => void
+  clearSchedule: () => void
   getScheduleDay: (date: string) => ScheduleDay | undefined
   setPendingTrackDate: (date: string | null) => void
 }
@@ -183,6 +185,19 @@ export const useStore = create<StoreState>()(
             ? state.schedule.map((d) => (d.date === day.date ? day : d))
             : [...state.schedule, day],
         })),
+
+      setScheduleDays: (days) =>
+        set((state) => {
+          const updated = [...state.schedule]
+          days.forEach((day) => {
+            const idx = updated.findIndex((d) => d.date === day.date)
+            if (idx >= 0) updated[idx] = day
+            else updated.push(day)
+          })
+          return { schedule: updated }
+        }),
+
+      clearSchedule: () => set({ schedule: [] }),
 
       removeScheduleDay: (date) =>
         set((state) => ({ schedule: state.schedule.filter((d) => d.date !== date) })),

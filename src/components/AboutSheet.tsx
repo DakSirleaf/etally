@@ -16,6 +16,7 @@ const roles: { role: StaffRole; label: string }[] = [
   { role: 'LPN', label: 'LPN' },
   { role: 'HST', label: 'HST' },
   { role: 'HSA', label: 'HSA' },
+  { role: 'POOL_RN', label: 'Pool' },
 ]
 
 const shifts: { id: ShiftPreference; label: string }[] = [
@@ -30,7 +31,7 @@ const steps = [
   { step: '03', title: 'Set Start & End Times', desc: 'Tap START or END to open the time wheel. Your shift defaults are pre-filled based on your shift preference. Scroll to adjust, then tap SET TIME.' },
   { step: '04', title: 'Review Your Hours', desc: 'REG and OT hours calculate automatically. Regular shifts cap at 8.0 hrs paid; OT kicks in after 8.5 hrs clock time. OT pickup shifts count all time as OT.' },
   { step: '05', title: 'Select a Reason', desc: 'Choose from the dropdown: Standard Shift, Late Relief, Patient Care, Incident Report, CPR Training, Nursing Ed, or Mandatory - State of Emergency.' },
-  { step: '06', title: 'Log a Callout', desc: 'Switch to CALLOUT and pick your pay type. RNs use Sick Time or AL Day. LPN/HST/HSA can also use Vacation Time. AL Days are capped at 3 per calendar year.' },
+  { step: '06', title: 'Log a Callout', desc: 'Switch to CALLOUT and pick your pay type. RNs use Sick Time or AL Day. LPN/HST/HSA can also use Vacation Time. AL Days are capped at 3 per calendar year. Pool RNs have no callout coverage.' },
   { step: '07', title: 'Duplicate Last Entry', desc: 'Tap DUPLICATE LAST ENTRY to pre-fill the form with your most recent shift times and type — great for back-to-back similar shifts.' },
   { step: '08', title: 'Import Your Schedule', desc: 'In the Calendar tab, tap the camera IMPORT button. Upload a photo of your printed monthly schedule and eTally will read all your shift dates automatically.' },
   { step: '09', title: 'View & Edit the Log', desc: 'Switch to the LOG tab to see all entries. Tap the pencil icon to edit any entry. Tap the trash icon and confirm to delete — always confirmed before deleting.' },
@@ -38,6 +39,8 @@ const steps = [
   { step: '11', title: 'Vault & Pay Period Archive', desc: 'Tap the gold vault icon in the header to view archived pay periods. Past periods are automatically moved to the Vault when a new pay period begins.' },
   { step: '12', title: 'Change Your Role or Shift', desc: 'Use the YOUR ROLE and YOUR SHIFT sections above to update your role or default shift times anytime without losing your data.' },
 ]
+
+const degrees = ['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP']
 
 export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
   const role = useStore((s: any) => s.role) as StaffRole | null
@@ -59,9 +62,10 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
     shiftPreference === 'day' ? 'Default times: 6:45 AM – 3:15 PM' :
     'Default times: 10:45 PM – 7:15 AM'
 
-  const roleDesc = role === 'RN'
-    ? 'RN callout coverage: Sick Time or AL Day'
-    : `${role} callout coverage: Sick Time, Vacation Time, or AL Day`
+  const roleDesc =
+    role === 'RN' ? 'RN callout coverage: Sick Time or AL Day' :
+    role === 'POOL_RN' ? 'Pool RN: Per diem · OT after 40 hrs/week · No callout coverage' :
+    `${role} callout coverage: Sick Time, Vacation Time, or AL Day`
 
   return (
     <AnimatePresence>
@@ -109,15 +113,26 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">DEVELOPED BY</p>
                 <p className="font-display font-bold text-lg text-white leading-tight">A. Ace Sirleaf</p>
                 <p className="text-[11px] text-blue-400 font-body mt-0.5">Kola Technology Laboratory</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {degrees.map((deg) => (
+                    <span key={deg} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>
+                      {deg}
+                    </span>
+                  ))}
+                </div>
                 <div className="mt-4 pt-4 border-t border-slate-800">
-                  <p className="text-[10px] font-display font-bold tracking-widest text-slate-500 italic">"Dare to build it yourself."</p>
+                  <p className="text-[10px] font-body leading-relaxed" style={{ color: '#64748B' }}>
+                    Founder · Software Developer · Psychiatric Nursing Professional.<br />
+                    Building clinical tools that bridge direct patient care and modern technology.
+                  </p>
+                  <p className="text-[10px] font-display font-bold tracking-widest text-slate-500 italic mt-3">"Dare to build it yourself."</p>
                 </div>
               </div>
 
               {/* Role */}
               <div className="mb-4">
                 <p className="text-[9px] font-display font-bold tracking-widest mb-3 px-1" style={{ color: labelColor }}>YOUR ROLE</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {roles.map(({ role: r, label }) => (
                     <motion.button
                       key={r}
@@ -125,6 +140,7 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                       onClick={() => setRole(r)}
                       className="flex-1 py-3 rounded-2xl font-display font-extrabold text-sm transition-all"
                       style={{
+                        minWidth: '60px',
                         background: role === r ? 'rgba(15,17,38,0.08)' : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
                         border: role === r ? '1.5px solid rgba(15,17,38,0.2)' : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
                         color: role === r ? '#0a0a14' : isDark ? '#334155' : '#94A3B8',

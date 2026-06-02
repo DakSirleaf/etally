@@ -2,37 +2,118 @@ import type { PayPeriod } from './payPeriod'
 import type { ScheduleDay } from '../types'
 
 export interface Holiday {
-  date: string // YYYY-MM-DD
+  date: string
   name: string
 }
 
-const HOLIDAYS_2026: Holiday[] = [
-  { date: '2026-01-01', name: "New Year's Day" },
-  { date: '2026-01-19', name: 'MLK Day' },
-  { date: '2026-02-16', name: 'Presidents Day' },
-  { date: '2026-04-03', name: 'Good Friday' },
-  { date: '2026-05-25', name: 'Memorial Day' },
-  { date: '2026-06-19', name: 'Juneteenth' },
-  { date: '2026-07-03', name: 'Independence Day Observed' },
-  { date: '2026-09-07', name: 'Labor Day' },
-  { date: '2026-10-12', name: 'Columbus Day' },
-  { date: '2026-11-03', name: 'Election Day' },
-  { date: '2026-11-11', name: 'Veterans Day' },
-  { date: '2026-11-26', name: 'Thanksgiving' },
-  { date: '2026-12-25', name: 'Christmas' },
-]
+function toYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
+// Nth weekday of a month (weekday: 0=Sun 1=Mon ... 6=Sat)
+function getNthWeekday(year: number, month: number, weekday: number, n: number): Date {
+  const d = new Date(year, month - 1, 1)
+  let count = 0
+  while (true) {
+    if (d.getDay() === weekday) { count++; if (count === n) return new Date(d) }
+    d.setDate(d.getDate() + 1)
+  }
+}
+
+// Last weekday of a month
+function getLastWeekday(year: number, month: number, weekday: number): Date {
+  const d = new Date(year, month, 0)
+  while (d.getDay() !== weekday) d.setDate(d.getDate() - 1)
+  return d
+}
+
+// Observed date: Saturday → Friday, Sunday → Monday
+function getObserved(d: Date): Date {
+  const result = new Date(d)
+  if (d.getDay() === 6) result.setDate(d.getDate() - 1)
+  else if (d.getDay() === 0) result.setDate(d.getDate() + 1)
+  return result
+}
+
+// Easter — Anonymous Gregorian algorithm
+function getEaster(year: number): Date {
+  const a = year % 19
+  const b = Math.floor(year / 100)
+  const c = year % 100
+  const d = Math.floor(b / 4)
+  const e = b % 4
+  const f = Math.floor((b + 8) / 25)
+  const g = Math.floor((b - f + 1) / 3)
+  const h = (19 * a + b - d - g + 15) % 30
+  const i = Math.floor(c / 4)
+  const k = c % 4
+  const l = (32 + 2 * e + 2 * i - h - k) % 7
+  const m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const month = Math.floor((h + l - 7 * m + 114) / 31)
+  const day = ((h + l - 7 * m + 114) % 31) + 1
+  return new Date(year, month - 1, day)
+}
+
+// Fully dynamic NJ State holiday calculation for any year
 export function getHolidaysForYear(year: number): Holiday[] {
-  if (year === 2026) return HOLIDAYS_2026
-  // Add future years here
-  return []
+  const holidays: Holiday[] = []
+  const add = (date: Date, name: string) =>
+    holidays.push({ date: toYMD(getObserved(date)), name })
+
+  // New Year's Day — Jan 1
+  add(new Date(year, 0, 1), "New Year's Day")
+
+  // MLK Day — 3rd Monday in January
+  holidays.push({ date: toYMD(getNthWeekday(year, 1, 1, 3)), name: 'MLK Day' })
+
+  // Presidents Day — 3rd Monday in February
+  holidays.push({ date: toYMD(getNthWeekday(year, 2, 1, 3)), name: 'Presidents Day' })
+
+  // Good Friday — 2 days before Easter
+  const easter = getEaster(year)
+  const goodFriday = new Date(easter)
+  goodFriday.setDate(easter.getDate() - 2)
+  holidays.push({ date: toYMD(goodFriday), name: 'Good Friday' })
+
+  // Memorial Day — last Monday in May
+  holidays.push({ date: toYMD(getLastWeekday(year, 5, 1)), name: 'Memorial Day' })
+
+  // Juneteenth — June 19
+  add(new Date(year, 5, 19), 'Juneteenth')
+
+  // Independence Day — July 4
+  add(new Date(year, 6, 4), 'Independence Day')
+
+  // Labor Day — 1st Monday in September
+  holidays.push({ date: toYMD(getNthWeekday(year, 9, 1, 1)), name: 'Labor Day' })
+
+  // Columbus Day — 2nd Monday in October
+  holidays.push({ date: toYMD(getNthWeekday(year, 10, 1, 2)), name: 'Columbus Day' })
+
+  // Election Day — first Tuesday after first Monday in November
+  const firstMondayNov = getNthWeekday(year, 11, 1, 1)
+  const electionDay = new Date(firstMondayNov)
+  electionDay.setDate(firstMondayNov.getDate() + 1)
+  holidays.push({ date: toYMD(electionDay), name: 'Election Day' })
+
+  // Veterans Day — November 11
+  add(new Date(year, 10, 11), 'Veterans Day')
+
+  // Thanksgiving — 4th Thursday in November
+  holidays.push({ date: toYMD(getNthWeekday(year, 11, 4, 4)), name: 'Thanksgiving' })
+
+  // Christmas — December 25
+  add(new Date(year, 11, 25), 'Christmas')
+
+  return holidays.sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export function getHolidaysInPeriod(period: PayPeriod): Holiday[] {
   const startYear = parseInt(period.start.substring(0, 4))
   const endYear = parseInt(period.end.substring(0, 4))
   const holidays: Holiday[] = []
-  for (let y = startYear; y <= endYear; y++) {
+  // Check adjacent years to catch observed holidays that shift across year boundaries
+  for (let y = startYear - 1; y <= endYear + 1; y++) {
     holidays.push(...getHolidaysForYear(y))
   }
   return holidays.filter((h) => h.date >= period.start && h.date <= period.end)
@@ -49,20 +130,21 @@ export function getEcatsDeadline(period: PayPeriod): EcatsDeadlineInfo {
   const holidays = getHolidaysInPeriod(period)
   const isHolidayWeek = holidays.length > 0
 
-  // period.end is always a Friday
+  // period.end = last Friday of pay period = one week before payday
+  // Normal deadline: that Friday at 1 PM
+  // Holiday exception: Tuesday of same week (Friday - 3 days) at 1 PM
   const endFriday = new Date(period.end + 'T00:00:00')
 
   let deadline: Date
   if (isHolidayWeek) {
-    // Tuesday of the same week as the period-end Friday (3 days before)
     deadline = new Date(endFriday)
-    deadline.setDate(endFriday.getDate() - 3)
+    deadline.setDate(endFriday.getDate() - 3) // Tuesday
   } else {
     deadline = new Date(endFriday)
   }
   deadline.setHours(13, 0, 0, 0) // 1:00 PM
 
-  // Supplemental deadline: Tuesday of the following (non-pay) week = Friday + 4 days
+  // Supplemental reminder: Tuesday of pay week (payday Friday - 3 days)
   const supplementalDeadline = new Date(endFriday)
   supplementalDeadline.setDate(endFriday.getDate() + 4)
   supplementalDeadline.setHours(13, 0, 0, 0)
@@ -87,8 +169,7 @@ export function getPreApprovedOTAfterDeadline(
 ): ScheduleDay[] {
   const { isHolidayWeek, deadline } = getEcatsDeadline(period)
   if (!isHolidayWeek) return []
-  const dl = deadline
-  const deadlineDateStr = `${dl.getFullYear()}-${String(dl.getMonth() + 1).padStart(2, '0')}-${String(dl.getDate()).padStart(2, '0')}`
+  const deadlineDateStr = toYMD(deadline)
   return schedule.filter(
     (day) =>
       day.type === 'ot' &&
