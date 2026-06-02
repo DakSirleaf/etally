@@ -37,6 +37,7 @@ interface StoreState {
   schedule: ScheduleDay[]
   pendingTrackDate: string | null
   shiftPreference: ShiftPreference | null
+  lockTimeout: number // minutes, 0 = off
 
   addEntry: (entry: LogEntry) => void
   removeEntry: (id: number) => void
@@ -48,6 +49,7 @@ interface StoreState {
   setRole: (role: StaffRole) => void
   toggleTheme: () => void
   setShiftPreference: (pref: ShiftPreference) => void
+  setLockTimeout: (minutes: number) => void
 
   archiveClosedPeriods: () => void
   updateVaultPeriod: (period: VaultPeriod) => void
@@ -75,6 +77,7 @@ export const useStore = create<StoreState>()(
       schedule: [],
       pendingTrackDate: null,
       shiftPreference: null,
+      lockTimeout: 0,
 
       addEntry: (entry) =>
         set((state) => ({ entries: [...state.entries, entry] })),
@@ -113,6 +116,7 @@ export const useStore = create<StoreState>()(
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       setShiftPreference: (pref) => set({ shiftPreference: pref }),
+      setLockTimeout: (minutes) => set({ lockTimeout: minutes }),
 
       archiveClosedPeriods: () => {
         const state = get()
