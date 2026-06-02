@@ -40,7 +40,10 @@ export default function App() {
 
   // Inactivity lock
   useEffect(() => {
-    if (!user || lockTimeout === 0) return
+    if (!user || lockTimeout === 0) {
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
+      return
+    }
     const ms = lockTimeout * 60 * 1000
     const reset = () => {
       if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
@@ -117,7 +120,14 @@ export default function App() {
           <p className="text-sm font-body text-center" style={{ color: '#64748B' }}>Locked due to inactivity</p>
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => setLocked(false)}
+            onClick={() => {
+              setLocked(false)
+              // Reset the inactivity timer on unlock
+              if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
+              if (lockTimeout > 0) {
+                lockTimerRef.current = setTimeout(() => setLocked(true), lockTimeout * 60 * 1000)
+              }
+            }}
             className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white mt-4"
             style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
