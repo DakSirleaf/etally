@@ -2,19 +2,24 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TrackTab from './components/TrackTab'
 import LogTab from './components/LogTab'
+import CalendarTab from './components/CalendarTab'
 import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
 import ReportModal from './components/ReportModal'
 import VaultSheet from './components/VaultSheet'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
+import AuthScreen from './components/AuthScreen'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
+import { useSync } from './lib/useSync'
+import { useAuth } from './lib/useAuth'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 
-type Tab = 'track' | 'log'
+type Tab = 'track' | 'log' | 'cal'
 
 export default function App() {
+  const { user, loading, signOut } = useAuth()
   const [tab, setTab] = useState<Tab>('track')
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -24,9 +29,11 @@ export default function App() {
   const vault = useStore((s) => s.vault)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
+  const clearSession = useStore((s) => s.clearSession)
   const isDark = theme === 'dark'
 
   useAutoArchive()
+  useSync(user)
 
   const handleTabChange = (newTab: Tab) => setTab(newTab)
   const goHome = () => handleTabChange('track')
@@ -36,6 +43,41 @@ export default function App() {
   const mainBg = isDark
     ? 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)'
     : '#F1F5F9'
+
+  const handleSignOut = async () => {
+    await signOut()
+    clearSession()
+  }
+
+  // Show loading splash while session resolves
+  if (loading) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{ height: '100dvh', background: '#050912' }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <h1 className="font-display font-extrabold text-2xl text-white tracking-tight">eTally</h1>
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              border: '2px solid rgba(255,255,255,0.1)',
+              borderTopColor: '#3B82F6',
+              borderRadius: '50%',
+              animation: 'spin 0.7s linear infinite',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
+
+  // Gate entire app behind auth
+  if (!user) {
+    return <AuthScreen />
+  }
 
   return (
     <div
@@ -164,13 +206,31 @@ export default function App() {
               </svg>
               <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>HELP</span>
             </motion.button>
+
+            {/* Sign Out */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleSignOut}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.30, type: 'spring', stiffness: 320, damping: 28 }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.07)' }}
+              aria-label="Sign out"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 17l5-5-5-5" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 12H9" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </motion.button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
         <div className="absolute inset-0 overflow-y-auto">
-          {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={goHome} />}
+          {tab === 'track' ? <TrackTab /> : tab === 'log' ? <LogTab onNavigateToTrack={goHome} /> : <CalendarTab onNavigateToTrack={goHome} />}
         </div>
       </main>
 

@@ -42,6 +42,7 @@ interface StoreState {
   removeEntry: (id: number) => void
   updateEntry: (entry: LogEntry) => void
   clearAll: () => void
+  clearSession: () => void
   saveSnapshot: (label: string) => void
   deleteSnapshot: (id: number) => void
   setRole: (role: StaffRole) => void
@@ -82,6 +83,15 @@ export const useStore = create<StoreState>()(
       updateEntry: (entry) =>
         set((state) => ({ entries: state.entries.map((e) => (e.id === entry.id ? entry : e)) })),
       clearAll: () => set({ entries: [] }),
+
+      // Clears all user data on sign out — role, entries, schedule, vault
+      clearSession: () => set({
+        role: null,
+        entries: [],
+        schedule: [],
+        vault: [],
+        pendingTrackDate: null,
+      }),
 
       saveSnapshot: (label) => {
         const entries = get().entries
