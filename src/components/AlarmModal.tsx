@@ -2,14 +2,17 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '../lib/useTheme'
 
+type RepeatMode = 'once' | 'daily' | 'weekdays'
+
 interface Alarm {
   id: number
-  hour: number
+  hour: number    // 0-23 internally
   minute: number
   label: string
   tone: ToneId
   enabled: boolean
   fired: boolean
+  repeat: RepeatMode
 }
 
 type ToneId = 'pulse' | 'bell' | 'buzz' | 'chime' | 'alert'
@@ -22,13 +25,18 @@ const TONES: { id: ToneId; label: string; emoji: string }[] = [
   { id: 'alert', label: 'Alert', emoji: '🚨' },
 ]
 
+const REPEATS: { id: RepeatMode; label: string }[] = [
+  { id: 'once', label: 'Once' },
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekdays', label: 'Weekdays' },
+]
+
 function playTone(toneId: ToneId, ctx: AudioContext) {
   const now = ctx.currentTime
   switch (toneId) {
     case 'pulse': {
       for (let i = 0; i < 3; i++) {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
+        const o = ctx.createOscillator(); const g = ctx.createGain()
         o.connect(g); g.connect(ctx.destination)
         o.type = 'sine'; o.frequency.setValueAtTime(880, now + i * 0.4)
         g.gain.setValueAtTime(0, now + i * 0.4)
@@ -39,10 +47,8 @@ function playTone(toneId: ToneId, ctx: AudioContext) {
       break
     }
     case 'bell': {
-      const freqs = [523, 659, 784, 1047]
-      freqs.forEach((f, i) => {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
+      [523, 659, 784, 1047].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
         o.connect(g); g.connect(ctx.destination)
         o.type = 'sine'; o.frequency.setValueAtTime(f, now + i * 0.25)
         g.gain.setValueAtTime(0.3, now + i * 0.25)
@@ -53,8 +59,7 @@ function playTone(toneId: ToneId, ctx: AudioContext) {
     }
     case 'buzz': {
       for (let i = 0; i < 4; i++) {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
+        const o = ctx.createOscillator(); const g = ctx.createGain()
         o.connect(g); g.connect(ctx.destination)
         o.type = 'square'; o.frequency.setValueAtTime(120, now + i * 0.2)
         g.gain.setValueAtTime(0.3, now + i * 0.2)
@@ -65,10 +70,8 @@ function playTone(toneId: ToneId, ctx: AudioContext) {
       break
     }
     case 'chime': {
-      const notes = [523, 784, 659, 1047, 880]
-      notes.forEach((f, i) => {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
+      [523, 784, 659, 1047, 880].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
         o.connect(g); g.connect(ctx.destination)
         o.type = 'sine'; o.frequency.setValueAtTime(f, now + i * 0.18)
         g.gain.setValueAtTime(0.25, now + i * 0.18)
@@ -79,8 +82,7 @@ function playTone(toneId: ToneId, ctx: AudioContext) {
     }
     case 'alert': {
       for (let i = 0; i < 6; i++) {
-        const o = ctx.createOscillator()
-        const g = ctx.createGain()
+        const o = ctx.createOscillator(); const g = ctx.createGain()
         o.connect(g); g.connect(ctx.destination)
         o.type = 'sawtooth'
         o.frequency.setValueAtTime(i % 2 === 0 ? 1200 : 800, now + i * 0.15)
@@ -101,6 +103,19 @@ function fmt12(h: number, m: number) {
   return `${h12}:${pad(m)} ${ampm}`
 }
 
+// Convert 12hr display + ampm to 24hr internal
+function to24(h12: number, ampm: 'AM' | 'PM'): number {
+  if (ampm === 'AM') return h12 === 12 ? 0 : h12
+  return h12 === 12 ? 12 : h12 + 12
+}
+
+// Convert 24hr internal to 12hr display
+function to12(h24: number): { h12: number; ampm: 'AM' | 'PM' } {
+  const ampm: 'AM' | 'PM' = h24 < 12 ? 'AM' : 'PM'
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12
+  return { h12, ampm }
+}
+
 interface AlarmModalProps {
   isOpen: boolean
   onClose: () => void
@@ -110,15 +125,22 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor } = useTheme()
   const [alarms, setAlarms] = useState<Alarm[]>([])
   const [editing, setEditing] = useState<number | null>(null)
-  const [editHour, setEditHour] = useState(7)
+
+  // Edit state in 12hr format
+  const [editH12, setEditH12] = useState(7)
+  const [editAmPm, setEditAmPm] = useState<'AM' | 'PM'>('AM')
   const [editMinute, setEditMinute] = useState(0)
   const [editLabel, setEditLabel] = useState('')
   const [editTone, setEditTone] = useState<ToneId>('pulse')
+  const [editRepeat, setEditRepeat] = useState<RepeatMode>('once')
+
   const [firing, setFiring] = useState<Alarm | null>(null)
+  const [snoozed, setSnoozed] = useState(false)
   const [now, setNow] = useState(new Date())
   const audioCtxRef = useRef<AudioContext | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const fireIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const snoozeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Clock tick
   useEffect(() => {
@@ -130,24 +152,23 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
   useEffect(() => {
     const check = setInterval(() => {
       const n = new Date()
+      const dayOfWeek = n.getDay() // 0=Sun, 6=Sat
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5
+
       setAlarms(prev => prev.map(a => {
         if (!a.enabled || a.fired) return a
+        if (a.repeat === 'weekdays' && !isWeekday) return a
         if (a.hour === n.getHours() && a.minute === n.getMinutes() && n.getSeconds() === 0) {
           setFiring(a)
-          return { ...a, fired: true }
+          // For repeat alarms, reset fired after 1 min so they fire again tomorrow
+          const shouldKeepFired = a.repeat === 'once'
+          return { ...a, fired: shouldKeepFired }
         }
         return a
       }))
     }, 1000)
     return () => clearInterval(check)
   }, [])
-
-  // Reset fired flag after a minute
-  useEffect(() => {
-    if (!firing) return
-    const t = setTimeout(() => setFiring(null), 60000)
-    return () => clearTimeout(t)
-  }, [firing])
 
   // Fire sound + vibration
   useEffect(() => {
@@ -176,35 +197,57 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
 
   const dismissFiring = () => {
     if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
+    if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current)
+    setSnoozed(false)
     setFiring(null)
+  }
+
+  const snoozeFiring = () => {
+    if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
+    setSnoozed(true)
+    setFiring(null)
+    // Re-fire after 5 minutes
+    snoozeTimerRef.current = setTimeout(() => {
+      if (firing) {
+        setSnoozed(false)
+        setFiring(firing)
+      }
+    }, 5 * 60 * 1000)
   }
 
   const openNew = () => {
     if (alarms.length >= 3) return
     setEditing(-1)
-    setEditHour(7)
+    setEditH12(7)
+    setEditAmPm('AM')
     setEditMinute(0)
     setEditLabel('')
     setEditTone('pulse')
+    setEditRepeat('once')
   }
 
   const openEdit = (a: Alarm) => {
+    const { h12, ampm } = to12(a.hour)
     setEditing(a.id)
-    setEditHour(a.hour)
+    setEditH12(h12)
+    setEditAmPm(ampm)
     setEditMinute(a.minute)
     setEditLabel(a.label)
     setEditTone(a.tone)
+    setEditRepeat(a.repeat)
   }
 
   const saveAlarm = () => {
+    const hour24 = to24(editH12, editAmPm)
     if (editing === -1) {
       setAlarms(prev => [...prev, {
-        id: Date.now(), hour: editHour, minute: editMinute,
-        label: editLabel || 'Alarm', tone: editTone, enabled: true, fired: false,
+        id: Date.now(), hour: hour24, minute: editMinute,
+        label: editLabel || 'Alarm', tone: editTone,
+        enabled: true, fired: false, repeat: editRepeat,
       }])
     } else {
       setAlarms(prev => prev.map(a => a.id === editing
-        ? { ...a, hour: editHour, minute: editMinute, label: editLabel || 'Alarm', tone: editTone, fired: false }
+        ? { ...a, hour: hour24, minute: editMinute, label: editLabel || 'Alarm', tone: editTone, fired: false, repeat: editRepeat }
         : a
       ))
     }
@@ -224,6 +267,8 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
 
   const bg = isDark ? '#0A0F1E' : '#ffffff'
   const sheetBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,17,38,0.08)'
+
+  const repeatLabel = (r: RepeatMode) => r === 'once' ? 'Once' : r === 'daily' ? 'Daily' : 'Weekdays'
 
   return (
     <AnimatePresence>
@@ -266,49 +311,22 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
               <div className="flex justify-center mb-5">
                 <div className="relative" style={{ width: 180, height: 180 }}>
                   <svg width="180" height="180" viewBox="0 0 180 180">
-                    {/* Face */}
                     <circle cx="90" cy="90" r="88" fill={isDark ? '#0F172A' : '#F8FAFC'} stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.1)'} strokeWidth="1.5" />
-                    {/* Hour ticks */}
                     {Array.from({ length: 12 }).map((_, i) => {
                       const a = (i * 30 - 90) * (Math.PI / 180)
-                      const x1 = 90 + 74 * Math.cos(a), y1 = 90 + 74 * Math.sin(a)
-                      const x2 = 90 + 82 * Math.cos(a), y2 = 90 + 82 * Math.sin(a)
-                      return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.25)'} strokeWidth="2.5" strokeLinecap="round" />
+                      return <line key={i} x1={90 + 74 * Math.cos(a)} y1={90 + 74 * Math.sin(a)} x2={90 + 82 * Math.cos(a)} y2={90 + 82 * Math.sin(a)} stroke={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.25)'} strokeWidth="2.5" strokeLinecap="round" />
                     })}
-                    {/* Minute ticks */}
                     {Array.from({ length: 60 }).map((_, i) => {
                       if (i % 5 === 0) return null
                       const a = (i * 6 - 90) * (Math.PI / 180)
-                      const x1 = 90 + 78 * Math.cos(a), y1 = 90 + 78 * Math.sin(a)
-                      const x2 = 90 + 82 * Math.cos(a), y2 = 90 + 82 * Math.sin(a)
-                      return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)'} strokeWidth="1" strokeLinecap="round" />
+                      return <line key={i} x1={90 + 78 * Math.cos(a)} y1={90 + 78 * Math.sin(a)} x2={90 + 82 * Math.cos(a)} y2={90 + 82 * Math.sin(a)} stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)'} strokeWidth="1" strokeLinecap="round" />
                     })}
-                    {/* Hour hand */}
-                    <line
-                      x1="90" y1="90"
-                      x2={90 + 48 * Math.cos((hrDeg - 90) * Math.PI / 180)}
-                      y2={90 + 48 * Math.sin((hrDeg - 90) * Math.PI / 180)}
-                      stroke={isDark ? '#E2E8F0' : '#0F172A'} strokeWidth="4" strokeLinecap="round"
-                    />
-                    {/* Minute hand */}
-                    <line
-                      x1="90" y1="90"
-                      x2={90 + 66 * Math.cos((minDeg - 90) * Math.PI / 180)}
-                      y2={90 + 66 * Math.sin((minDeg - 90) * Math.PI / 180)}
-                      stroke={isDark ? '#CBD5E1' : '#334155'} strokeWidth="2.5" strokeLinecap="round"
-                    />
-                    {/* Second hand */}
-                    <line
-                      x1="90" y1="90"
-                      x2={90 + 72 * Math.cos((secDeg - 90) * Math.PI / 180)}
-                      y2={90 + 72 * Math.sin((secDeg - 90) * Math.PI / 180)}
-                      stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"
-                    />
-                    {/* Center dot */}
+                    <line x1="90" y1="90" x2={90 + 48 * Math.cos((hrDeg - 90) * Math.PI / 180)} y2={90 + 48 * Math.sin((hrDeg - 90) * Math.PI / 180)} stroke={isDark ? '#E2E8F0' : '#0F172A'} strokeWidth="4" strokeLinecap="round" />
+                    <line x1="90" y1="90" x2={90 + 66 * Math.cos((minDeg - 90) * Math.PI / 180)} y2={90 + 66 * Math.sin((minDeg - 90) * Math.PI / 180)} stroke={isDark ? '#CBD5E1' : '#334155'} strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="90" y1="90" x2={90 + 72 * Math.cos((secDeg - 90) * Math.PI / 180)} y2={90 + 72 * Math.sin((secDeg - 90) * Math.PI / 180)} stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
                     <circle cx="90" cy="90" r="4" fill="#EF4444" />
                     <circle cx="90" cy="90" r="2" fill={isDark ? '#0F172A' : '#F8FAFC'} />
                   </svg>
-                  {/* Digital time overlay */}
                   <div className="absolute bottom-3 left-0 right-0 flex justify-center">
                     <span className="font-display font-bold tabular-nums" style={{ fontSize: 13, color: textSecondary }}>
                       {fmt12(now.getHours(), now.getMinutes())}
@@ -316,6 +334,24 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Snooze banner */}
+              <AnimatePresence>
+                {snoozed && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    className="mb-3 overflow-hidden">
+                    <div className="rounded-2xl px-4 py-3 flex items-center justify-between"
+                      style={{ background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }}>
+                      <p className="text-[11px] font-display font-bold" style={{ color: '#3B82F6' }}>⏱ Snoozed · Re-fires in 5 min</p>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSnoozed(false); if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current) }}
+                        className="text-[9px] font-display font-bold tracking-widest px-2 py-1 rounded-lg"
+                        style={{ background: 'rgba(37,99,235,0.15)', color: '#3B82F6' }}>
+                        CANCEL
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Alarms list */}
               <div className="mb-3">
@@ -353,6 +389,10 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] font-body" style={{ color: textSecondary }}>{a.label}</span>
                           <span className="text-[9px]">{TONES.find(t => t.id === a.tone)?.emoji}</span>
+                          <span className="text-[9px] font-display font-bold px-1.5 py-0.5 rounded-md"
+                            style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: textSecondary }}>
+                            {repeatLabel(a.repeat)}
+                          </span>
                         </div>
                       </motion.button>
                       <div className="flex items-center gap-3">
@@ -363,7 +403,6 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </motion.button>
-                        {/* Toggle */}
                         <motion.button whileTap={{ scale: 0.9 }} onClick={() => toggleAlarm(a.id)}
                           className="relative rounded-full transition-colors"
                           style={{ width: 44, height: 26, background: a.enabled ? '#2563EB' : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0') }}>
@@ -379,7 +418,7 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                 </div>
               </div>
 
-              {/* Edit / New alarm sheet */}
+              {/* Edit / New alarm */}
               <AnimatePresence>
                 {editing !== null && (
                   <motion.div
@@ -391,38 +430,52 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                       {editing === -1 ? 'NEW ALARM' : 'EDIT ALARM'}
                     </p>
 
-                    {/* Time picker */}
-                    <div className="flex items-center justify-center gap-2 mb-4">
+                    {/* 12-hour time picker */}
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      {/* Hour */}
                       <div className="flex flex-col items-center gap-1">
-                        <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditHour(h => (h + 1) % 24)}
+                        <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditH12(h => h === 12 ? 1 : h + 1)}
                           className="w-10 h-8 rounded-xl flex items-center justify-center"
                           style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 15l-6-6-6 6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" /></svg>
                         </motion.button>
-                        <span className="font-display font-extrabold text-4xl tabular-nums w-16 text-center" style={{ color: textPrimary }}>{pad(editHour)}</span>
-                        <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditHour(h => (h - 1 + 24) % 24)}
+                        <span className="font-display font-extrabold text-4xl tabular-nums w-14 text-center" style={{ color: textPrimary }}>{pad(editH12)}</span>
+                        <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditH12(h => h === 1 ? 12 : h - 1)}
                           className="w-10 h-8 rounded-xl flex items-center justify-center"
                           style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" /></svg>
                         </motion.button>
                       </div>
+
                       <span className="font-display font-extrabold text-4xl" style={{ color: textPrimary }}>:</span>
+
+                      {/* Minute */}
                       <div className="flex flex-col items-center gap-1">
                         <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditMinute(m => (m + 5) % 60)}
                           className="w-10 h-8 rounded-xl flex items-center justify-center"
                           style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 15l-6-6-6 6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" /></svg>
                         </motion.button>
-                        <span className="font-display font-extrabold text-4xl tabular-nums w-16 text-center" style={{ color: textPrimary }}>{pad(editMinute)}</span>
+                        <span className="font-display font-extrabold text-4xl tabular-nums w-14 text-center" style={{ color: textPrimary }}>{pad(editMinute)}</span>
                         <motion.button whileTap={{ scale: 0.85 }} onClick={() => setEditMinute(m => (m - 5 + 60) % 60)}
                           className="w-10 h-8 rounded-xl flex items-center justify-center"
                           style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0' }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke={textSecondary} strokeWidth="2" strokeLinecap="round" /></svg>
                         </motion.button>
                       </div>
-                      <div className="ml-2 flex flex-col gap-1">
-                        <span className="font-display font-bold text-sm px-2 py-1 rounded-lg" style={{ background: editHour < 12 ? '#2563EB' : 'transparent', color: editHour < 12 ? '#fff' : textSecondary }}>AM</span>
-                        <span className="font-display font-bold text-sm px-2 py-1 rounded-lg" style={{ background: editHour >= 12 ? '#2563EB' : 'transparent', color: editHour >= 12 ? '#fff' : textSecondary }}>PM</span>
+
+                      {/* AM/PM toggle */}
+                      <div className="flex flex-col gap-2 ml-1">
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditAmPm('AM')}
+                          className="font-display font-bold text-sm px-3 py-2 rounded-xl"
+                          style={{ background: editAmPm === 'AM' ? '#2563EB' : (isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0'), color: editAmPm === 'AM' ? '#fff' : textSecondary }}>
+                          AM
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditAmPm('PM')}
+                          className="font-display font-bold text-sm px-3 py-2 rounded-xl"
+                          style={{ background: editAmPm === 'PM' ? '#2563EB' : (isDark ? 'rgba(255,255,255,0.06)' : '#E2E8F0'), color: editAmPm === 'PM' ? '#fff' : textSecondary }}>
+                          PM
+                        </motion.button>
                       </div>
                     </div>
 
@@ -434,7 +487,23 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                       style={{ background: surface, border: surfaceBorder, color: textPrimary }}
                     />
 
-                    {/* Tone picker */}
+                    {/* Repeat */}
+                    <p className="text-[9px] font-display font-bold tracking-widest mb-2" style={{ color: labelColor }}>REPEAT</p>
+                    <div className="flex gap-2 mb-3">
+                      {REPEATS.map(r => (
+                        <motion.button key={r.id} whileTap={{ scale: 0.9 }} onClick={() => setEditRepeat(r.id)}
+                          className="flex-1 py-2 rounded-xl font-display font-bold text-[10px] tracking-wide"
+                          style={{
+                            background: editRepeat === r.id ? 'rgba(37,99,235,0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'),
+                            border: editRepeat === r.id ? '1px solid rgba(37,99,235,0.3)' : '1px solid transparent',
+                            color: editRepeat === r.id ? '#3B82F6' : textSecondary,
+                          }}>
+                          {r.label}
+                        </motion.button>
+                      ))}
+                    </div>
+
+                    {/* Tone */}
                     <p className="text-[9px] font-display font-bold tracking-widest mb-2" style={{ color: labelColor }}>TONE</p>
                     <div className="flex gap-2 flex-wrap mb-4">
                       {TONES.map(t => (
@@ -495,12 +564,22 @@ export default function AlarmModal({ isOpen, onClose }: AlarmModalProps) {
                   <p className="font-display font-extrabold text-3xl text-white tabular-nums mb-1">
                     {fmt12(firing.hour, firing.minute)}
                   </p>
-                  <p className="font-display font-bold text-base text-blue-400 mb-6">{firing.label}</p>
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={dismissFiring}
-                    className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
-                    style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.4)' }}>
-                    DISMISS
-                  </motion.button>
+                  <p className="font-display font-bold text-base text-blue-400 mb-2">{firing.label}</p>
+                  <p className="text-[10px] font-display font-bold tracking-widest mb-6" style={{ color: '#475569' }}>
+                    {repeatLabel(firing.repeat).toUpperCase()}
+                  </p>
+                  <div className="flex gap-3">
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={snoozeFiring}
+                      className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest"
+                      style={{ background: 'rgba(255,255,255,0.08)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      SNOOZE 5 MIN
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={dismissFiring}
+                      className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
+                      style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.4)' }}>
+                      DISMISS
+                    </motion.button>
+                  </div>
                 </div>
               </motion.div>
             )}
