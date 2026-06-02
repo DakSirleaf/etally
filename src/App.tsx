@@ -1,37 +1,24 @@
 import { useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import TrackTab from './components/TrackTab'
 import LogTab from './components/LogTab'
-import CalendarTab from './components/CalendarTab'
 import BottomNav from './components/BottomNav'
 import AboutSheet from './components/AboutSheet'
 import RoleSetup from './components/RoleSetup'
 import ReportModal from './components/ReportModal'
-import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import VaultSheet from './components/VaultSheet'
-import WelcomeModal from './components/WelcomeModal'
-import AuthScreen from './components/AuthScreen'
+import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
-import { useAuth } from './lib/useAuth'
-import { useSync } from './lib/useSync'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
-import { motion } from 'framer-motion'
 
-type Tab = 'track' | 'log' | 'cal'
-
-const TAB_ORDER: Tab[] = ['track', 'log', 'cal']
+type Tab = 'track' | 'log'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('track')
-  const [direction, setDirection] = useState(1)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [vaultOpen, setVaultOpen] = useState(false)
-  const [showWelcome, setShowWelcome] = useState(() => {
-    try { return !localStorage.getItem('etally-welcomed') } catch { return false }
-  })
-
   const role = useStore((s) => s.role)
   const entries = useStore((s: any) => s.entries)
   const vault = useStore((s) => s.vault)
@@ -39,26 +26,16 @@ export default function App() {
   const toggleTheme = useStore((s) => s.toggleTheme)
   const isDark = theme === 'dark'
 
-  const { user, loading: authLoading } = useAuth()
-
   useAutoArchive()
-  useSync()
 
-  const handleTabChange = (newTab: Tab) => {
-    setDirection(TAB_ORDER.indexOf(newTab) > TAB_ORDER.indexOf(tab) ? 1 : -1)
-    setTab(newTab)
-  }
-
+  const handleTabChange = (newTab: Tab) => setTab(newTab)
   const goHome = () => handleTabChange('track')
+
+  const currentPeriod = getCurrentPayPeriod()
 
   const mainBg = isDark
     ? 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)'
-    : '#eef0f8'
-
-  const periodLabel = formatPeriodRange(getCurrentPayPeriod())
-
-  if (authLoading) return <div style={{ height: '100dvh', background: '#eef0f8' }} />
-  if (!user) return <AuthScreen />
+    : '#F1F5F9'
 
   return (
     <div
@@ -66,12 +43,10 @@ export default function App() {
       style={{ height: '100dvh', overflow: 'hidden' }}
       data-theme={theme}
     >
-      <AnimatePresence>
-        {showWelcome && <WelcomeModal onDismiss={() => setShowWelcome(false)} />}
-      </AnimatePresence>
-
       <AnimatePresence>{!role && <RoleSetup />}</AnimatePresence>
+      <LegacyMigrationPrompt />
 
+      {/* Header */}
       <header
         className="flex-shrink-0 px-5 pb-4"
         style={{
@@ -87,27 +62,27 @@ export default function App() {
             whileTap={{ scale: 0.96 }}
             initial={{ opacity: 0, y: -18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.05 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.05 }}
             className="text-left"
           >
             <div className="flex items-center gap-2">
               <h1 className="font-display font-extrabold text-2xl text-white tracking-tight leading-none">
                 eTally
               </h1>
-              <span className="text-[9px] font-display font-bold tracking-widest text-slate-600 bg-slate-800 px-2 py-0.5 rounded-lg">
-                v2
+              <span className="text-[9px] font-display font-bold tracking-widest text-slate-500 bg-slate-800 px-2 py-0.5 rounded-lg">
+                v2.0
               </span>
             </div>
             <p
               className="font-body text-[11px] mt-0.5 tracking-wide"
               style={{ color: isDark ? '#3B82F6' : '#64748B' }}
             >
-              {periodLabel}
+              {formatPeriodRange(currentPeriod)}
             </p>
           </motion.button>
 
           <div className="flex items-center gap-2">
-
+            {/* Theme toggle */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={toggleTheme}
@@ -130,47 +105,48 @@ export default function App() {
               )}
             </motion.button>
 
+            {/* Vault button */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setVaultOpen(true)}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.24, type: 'spring', stiffness: 320, damping: 28 }}
-              className="relative w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: vault.length > 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.07)' }}
-              aria-label="Open Vault"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center relative"
+              style={{ background: vault.length > 0 ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.07)' }}
+              aria-label="Vault"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 8v13H3V8" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M23 3H1v5h22V3z" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 12h4" stroke={vault.length > 0 ? '#F59E0B' : '#475569'} strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7l2-4h14l2 4M3 7h18M10 11h4" stroke={vault.length > 0 ? '#8B5CF6' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {vault.length > 0 && (
                 <span
-                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full font-display font-bold text-white"
-                  style={{ background: '#F59E0B', fontSize: '8px', minWidth: '16px', height: '16px', padding: '0 3px' }}
+                  className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-display font-bold flex items-center justify-center text-white"
+                  style={{ background: '#8B5CF6' }}
                 >
                   {vault.length}
                 </span>
               )}
             </motion.button>
 
+            {/* Export */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setReportOpen(true)}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.25, type: 'spring', stiffness: 320, damping: 28 }}
+              transition={{ delay: 0.26, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
               style={{ background: entries.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.07)' }}
               aria-label="Export report"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={entries.length > 0 ? '#10B981' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M7 10l5 5 5-5M12 15V3" stroke={entries.length > 0 ? '#10B981' : '#475569'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={entries.length > 0 ? '#10B981' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 10l5 5 5-5M12 15V3" stroke={entries.length > 0 ? '#10B981' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
 
+            {/* Help */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setAboutOpen(true)}
@@ -179,42 +155,35 @@ export default function App() {
               transition={{ delay: 0.28, type: 'spring', stiffness: 320, damping: 28 }}
               className="h-10 px-3 rounded-2xl flex items-center justify-center gap-1.5"
               style={{ background: 'rgba(255,255,255,0.07)' }}
-              aria-label="Help and Support"
+              aria-label="Help"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#94A3B8" strokeWidth="1.8"/>
-                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round"/>
-                <circle cx="12" cy="17" r="0.5" fill="#94A3B8" stroke="#94A3B8" strokeWidth="1.5"/>
+                <circle cx="12" cy="12" r="9" stroke="#94A3B8" strokeWidth="1.8" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="12" cy="17" r="0.5" fill="#94A3B8" stroke="#94A3B8" strokeWidth="1.5" />
               </svg>
               <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>HELP</span>
             </motion.button>
-
           </div>
         </div>
       </header>
 
       <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
         <div className="absolute inset-0 overflow-y-auto">
-          {tab === 'track' && <TrackTab />}
-          {tab === 'log' && <LogTab onNavigateToTrack={goHome} />}
-          {tab === 'cal' && <CalendarTab onNavigateToTrack={goHome} />}
+          {tab === 'track' ? <TrackTab /> : <LogTab onNavigateToTrack={goHome} />}
         </div>
       </main>
 
-      <BottomNav active={tab} setActive={handleTabChange} />
+      <BottomNav active={tab} setActive={(t: any) => handleTabChange(t)} />
 
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
-
       <ReportModal
         isOpen={reportOpen}
         onClose={() => { setReportOpen(false); goHome() }}
         entries={entries}
         role={role}
       />
-
       <VaultSheet isOpen={vaultOpen} onClose={() => setVaultOpen(false)} />
-
-      <LegacyMigrationPrompt />
     </div>
   )
 }
