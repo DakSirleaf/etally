@@ -13,6 +13,17 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
+function getWeekStart(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  d.setDate(d.getDate() - day)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function sameWeek(a: string, b: string): boolean {
+  return getWeekStart(a) === getWeekStart(b)
+}
+
 function formatDateDisplay(dateStr: string): { weekday: string; date: string } {
   const d = new Date(dateStr + 'T00:00:00')
   return {
@@ -71,6 +82,7 @@ export default function TrackTab() {
   const addEntry = useStore((s: any) => s.addEntry)
   const role = useStore((s: any) => s.role) as StaffRole | null
   const entries = useStore((s: any) => s.entries)
+  const schedule = useStore((s: any) => s.schedule) ?? []
   const pendingTrackDate = useStore((s: any) => s.pendingTrackDate) as string | null
   const setPendingTrackDate = useStore((s: any) => s.setPendingTrackDate)
   const shiftPreference = useStore((s: any) => s.shiftPreference)
@@ -89,6 +101,7 @@ export default function TrackTab() {
   const [saved, setSaved] = useState(false)
   const [activePicker, setActivePicker] = useState<'start' | 'end' | null>(null)
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [conflictDismissed, setConflictDismissed] = useState(false)
 
   const currentYear = new Date().getFullYear()
   const alUsedThisYear = entries.filter(
@@ -96,6 +109,23 @@ export default function TrackTab() {
   ).length
   const alRemaining = Math.max(0, 3 - alUsedThisYear)
   const availablePayTypes = role ? CALLOUT_PAY_TYPES[role] : ['Sick Time', 'AL Day']
+
+  // Weekly hours for OT alert
+  const weeklyHours = entries
+    .filter((e: any) => sameWeek(e.date, date) && e.type !== 'CALLOUT' && e.reason !== 'OFF')
+    .reduce((sum: number, e: any) => sum + parseFloat(e.reg) + parseFloat(e.ot), 0)
+
+  const thisEntryHours = shiftType !== 'CALLOUT' ? parseFloat(calc.reg) + parseFloat(calc.ot) : 0
+  const projectedWeekly = weeklyHours + thisEntryHours
+  const showOtWarning = isPoolRN && projectedWeekly > 35
+  const isOtOverLimit = isPoolRN && projectedWeekly >= 40
+
+  // Schedule conflict detection
+  const scheduleDay = schedule.find((s: any) => s.date === date)
+  const existingEntry = entries.find((e: any) => e.date === date)
+  const hasConflict = !conflictDismissed && scheduleDay && shiftType !== 'CALLOUT' &&
+    scheduleDay.type !== 'scheduled' && scheduleDay.type !== shiftType.toLowerCase() &&
+    !existingEntry
 
   const recompute = useCallback(() => {
     if (shiftType !== 'CALLOUT') setCalc(calculateHours(start, end, shiftType))
@@ -113,6 +143,9 @@ export default function TrackTab() {
   useEffect(() => {
     if (calloutPayType === 'AL Day' && alRemaining === 0) setCalloutPayType('Sick Time')
   }, [calloutPayType, alRemaining])
+
+  // Reset conflict dismissed when date or shiftType changes
+  useEffect(() => { setConflictDismissed(false) }, [date, shiftType])
 
   const handleSave = () => {
     if (shiftType === 'CALLOUT') {
@@ -165,6 +198,70 @@ export default function TrackTab() {
         initial="hidden"
         animate="show"
       >
+        {/* Weekly OT Alert — Pool RN only */}
+        <AnimatePresence>
+          {showOtWarning && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
+                style={{ background: isOtOverLimit ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isOtOverLimit ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-0.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="12" y1="9" x2="12" y2="13" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="1.8" strokeLinecap="round" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <div>
+                  <p className="text-[10px] font-display font-bold tracking-widest" style={{ color: isOtOverLimit ? '#EF4444' : '#F59E0B' }}>
+                    {isOtOverLimit ? 'OT THRESHOLD REACHED' : 'APPROACHING OT'}
+                  </p>
+                  <p className="text-[11px] font-body mt-0.5" style={{ color: textSecondary }}>
+                    {isOtOverLimit
+                      ? `Projected ${projectedWeekly.toFixed(1)} hrs this week — all hours beyond 40 are OT rate.`
+                      : `${weeklyHours.toFixed(1)} hrs logged this week. ${(40 - projectedWeekly).toFixed(1)} hrs until OT threshold.`}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Schedule Conflict Warning */}
+        <AnimatePresence>
+          {hasConflict && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-0.5">
+                      <circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="1.8" />
+                      <line x1="12" y1="8" x2="12" y2="12" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    <div>
+                      <p className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#7C3AED' }}>SCHEDULE CONFLICT</p>
+                      <p className="text-[11px] font-body mt-0.5" style={{ color: textSecondary }}>
+                        Your schedule shows <span className="font-bold">{scheduleDay?.type?.toUpperCase()}</span> for this date. You're logging a <span className="font-bold">{shiftType}</span> shift. Confirm this is correct before saving.
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setConflictDismissed(true)}
+                    className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
+                    style={{ background: 'rgba(124,58,237,0.1)' }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 6L6 18M6 6l12 12" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Shift Type Toggle */}
         <motion.div
           variants={tileVariants}
@@ -318,7 +415,9 @@ export default function TrackTab() {
 
               {isPoolRN && (
                 <div className="rounded-2xl px-4 py-2" style={{ background: isDark ? 'rgba(37,99,235,0.08)' : '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)' }}>
-                  <p className="text-[10px] font-body" style={{ color: '#3B82F6' }}>Pool RN: OT applies after 40 hrs worked in the same week.</p>
+                  <p className="text-[10px] font-body" style={{ color: '#3B82F6' }}>
+                    Pool RN: OT applies after 40 hrs worked in the same week. {weeklyHours > 0 && `${weeklyHours.toFixed(1)} hrs logged this week.`}
+                  </p>
                 </div>
               )}
 

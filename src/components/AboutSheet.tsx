@@ -25,6 +25,13 @@ const shifts: { id: ShiftPreference; label: string }[] = [
   { id: 'day', label: 'Day' },
 ]
 
+const timeoutOptions = [
+  { value: 0, label: 'Off' },
+  { value: 5, label: '5 min' },
+  { value: 10, label: '10 min' },
+  { value: 20, label: '20 min' },
+]
+
 const steps = [
   { step: '01', title: 'Select Shift Type', desc: 'Toggle REGULAR for a scheduled shift, OVERTIME for a pickup shift where all time counts as OT, or CALLOUT to log a missed day.' },
   { step: '02', title: 'Set Your Date', desc: 'Tap the Date tile to open the date picker and select the shift date.' },
@@ -33,11 +40,15 @@ const steps = [
   { step: '05', title: 'Select a Reason', desc: 'Choose from the dropdown: Standard Shift, Late Relief, Patient Care, Incident Report, CPR Training, Nursing Ed, or Mandatory - State of Emergency.' },
   { step: '06', title: 'Log a Callout', desc: 'Switch to CALLOUT and pick your pay type. RNs use Sick Time or AL Day. LPN/HST/HSA can also use Vacation Time. AL Days are capped at 3 per calendar year. Pool RNs have no callout coverage.' },
   { step: '07', title: 'Duplicate Last Entry', desc: 'Tap DUPLICATE LAST ENTRY to pre-fill the form with your most recent shift times and type — great for back-to-back similar shifts.' },
-  { step: '08', title: 'Import Your Schedule', desc: 'In the Calendar tab, tap the camera IMPORT button. Upload a photo of your printed monthly schedule and eTally will read all your shift dates automatically.' },
-  { step: '09', title: 'View & Edit the Log', desc: 'Switch to the LOG tab to see all entries. Tap the pencil icon to edit any entry. Tap the trash icon and confirm to delete — always confirmed before deleting.' },
-  { step: '10', title: 'Export Your Report', desc: 'Tap the green download icon in the header anytime to generate a pay period report. Preview, print, save as PDF, or download as CSV for Excel.' },
-  { step: '11', title: 'Vault & Pay Period Archive', desc: 'Tap the gold vault icon in the header to view archived pay periods. Past periods are automatically moved to the Vault when a new pay period begins.' },
-  { step: '12', title: 'Change Your Role or Shift', desc: 'Use the YOUR ROLE and YOUR SHIFT sections above to update your role or default shift times anytime without losing your data.' },
+  { step: '08', title: 'OT Alert — Pool RN', desc: 'If you are a Pool RN, a live weekly hour counter appears as you approach 40 hours. A yellow warning fires at 35 hrs projected; red fires at 40. All hours beyond 40 in the same week are OT rate.' },
+  { step: '09', title: 'Schedule Conflict Detection', desc: 'If your imported schedule shows a different shift type for a date you are logging, a purple conflict banner appears. Review before saving. Tap X to dismiss if the conflict is intentional.' },
+  { step: '10', title: 'Import Your Schedule', desc: 'In the Calendar tab, tap the camera IMPORT button. Upload a photo of your printed monthly schedule and eTally will read all your shift dates automatically.' },
+  { step: '11', title: 'View & Edit the Log', desc: 'Switch to the LOG tab to see all entries. Tap the pencil icon to edit any entry. Tap the trash icon and confirm to delete — always confirmed before deleting.' },
+  { step: '12', title: 'Export Your Report', desc: 'Tap the green download icon in the header anytime to generate a pay period report. Preview, print, save as PDF, or download as CSV for Excel.' },
+  { step: '13', title: 'Vault & Pay Period Archive', desc: 'Tap the gold vault icon in the header to view archived pay periods. Past periods are automatically moved to the Vault when a new pay period begins.' },
+  { step: '14', title: 'Alarm Clock', desc: 'Tap the clock icon in the header to open the Alarm Clock. Set up to 3 alarms with custom labels and tones — Pulse, Chapel Bell, Buzzer, Chime, or Alert. Tap a tone to preview it. Alarms fire with sound and vibration.' },
+  { step: '15', title: 'Auto-Lock', desc: 'If you set an inactivity timeout during setup, the app locks automatically after the chosen time with no activity. Tap UNLOCK to resume. Change the timeout anytime in Help & Support.' },
+  { step: '16', title: 'Change Your Role or Shift', desc: 'Use the YOUR ROLE and YOUR SHIFT sections above to update your role or default shift times anytime without losing your data.' },
 ]
 
 const degrees = ['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP']
@@ -47,12 +58,16 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
   const setRole = useStore((s: any) => s.setRole)
   const shiftPreference = useStore((s: any) => s.shiftPreference) as ShiftPreference | null
   const setShiftPreference = useStore((s: any) => s.setShiftPreference)
+  const lockTimeout = useStore((s: any) => s.lockTimeout) as number
+  const setLockTimeout = useStore((s: any) => s.setLockTimeout)
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor } = useTheme()
   const { signOut } = useAuth()
+  const clearSession = useStore((s: any) => s.clearSession)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
+    clearSession()
     setConfirmSignOut(false)
     onClose()
   }
@@ -174,6 +189,31 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                   ))}
                 </div>
                 <p className="text-[10px] font-body mt-2 px-1" style={{ color: textSecondary }}>{shiftLabel}</p>
+              </div>
+
+              {/* Auto-lock timeout */}
+              <div className="mb-4">
+                <p className="text-[9px] font-display font-bold tracking-widest mb-3 px-1" style={{ color: labelColor }}>AUTO-LOCK TIMER</p>
+                <div className="flex gap-2">
+                  {timeoutOptions.map(({ value, label }) => (
+                    <motion.button
+                      key={value}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setLockTimeout(value)}
+                      className="flex-1 py-3 rounded-2xl font-display font-bold text-xs transition-all"
+                      style={{
+                        background: lockTimeout === value ? 'rgba(15,17,38,0.08)' : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                        border: lockTimeout === value ? '1.5px solid rgba(15,17,38,0.2)' : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
+                        color: lockTimeout === value ? '#0a0a14' : isDark ? '#334155' : '#94A3B8',
+                      }}
+                    >
+                      {label}
+                    </motion.button>
+                  ))}
+                </div>
+                <p className="text-[10px] font-body mt-2 px-1" style={{ color: textSecondary }}>
+                  {lockTimeout === 0 ? 'App stays open until you sign out.' : `App locks after ${lockTimeout} minutes of inactivity.`}
+                </p>
               </div>
 
               {/* Contact */}

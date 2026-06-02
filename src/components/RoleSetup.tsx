@@ -18,6 +18,13 @@ const SHIFTS = [
   { id: 'day' as ShiftPreference, label: 'Day Shift', time: '6:45 AM – 3:15 PM' },
 ]
 
+const TIMEOUTS = [
+  { value: 0, label: 'Off', desc: 'App stays open until you sign out' },
+  { value: 5, label: '5 min', desc: 'Recommended for shared devices' },
+  { value: 10, label: '10 min', desc: 'Good balance of security and convenience' },
+  { value: 20, label: '20 min', desc: 'Relaxed — personal device use' },
+]
+
 const cardStyle = {
   background: '#ffffff',
   border: '1px solid rgba(15,17,38,0.08)',
@@ -34,8 +41,10 @@ const cardStyle = {
 export default function RoleSetup() {
   const setRole = useStore((s) => s.setRole)
   const setShiftPreference = useStore((s: any) => s.setShiftPreference)
-  const [step, setStep] = useState<1 | 2>(1)
+  const setLockTimeout = useStore((s: any) => s.setLockTimeout)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [pendingRole, setPendingRole] = useState<StaffRole | null>(null)
+  const [pendingShift, setPendingShift] = useState<ShiftPreference | null>(null)
 
   const handleRoleSelect = (role: StaffRole) => {
     setPendingRole(role)
@@ -43,9 +52,15 @@ export default function RoleSetup() {
   }
 
   const handleShiftSelect = (pref: ShiftPreference) => {
-    if (pendingRole) {
+    setPendingShift(pref)
+    setStep(3)
+  }
+
+  const handleTimeoutSelect = (minutes: number) => {
+    if (pendingRole && pendingShift) {
       setRole(pendingRole)
-      setShiftPreference(pref)
+      setShiftPreference(pendingShift)
+      setLockTimeout(minutes)
     }
   }
 
@@ -61,9 +76,16 @@ export default function RoleSetup() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
 
+        {/* Step indicator */}
         <div className="flex gap-2 mb-8">
-          {[1, 2].map(s => (
-            <div key={s} style={{ width: s === step ? '24px' : '8px', height: '8px', borderRadius: '100px', background: s === step ? '#0a0a14' : 'rgba(15,17,38,0.15)', transition: 'all 0.3s ease' }} />
+          {[1, 2, 3].map(s => (
+            <div key={s} style={{
+              width: s === step ? '24px' : '8px',
+              height: '8px',
+              borderRadius: '100px',
+              background: s === step ? '#0a0a14' : s < step ? 'rgba(15,17,38,0.4)' : 'rgba(15,17,38,0.15)',
+              transition: 'all 0.3s ease',
+            }} />
           ))}
         </div>
 
@@ -104,7 +126,8 @@ export default function RoleSetup() {
                 ))}
               </div>
             </motion.div>
-          ) : (
+
+          ) : step === 2 ? (
             <motion.div
               key="step2"
               initial={{ opacity: 0, x: 16 }}
@@ -145,7 +168,55 @@ export default function RoleSetup() {
                   </motion.button>
                 ))}
               </div>
-              <p className="text-center mt-4" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95' }}>You can change this anytime in Help & Support</p>
+            </motion.div>
+
+          ) : (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              style={{ width: '100%', maxWidth: '340px' }}
+            >
+              <button
+                onClick={() => setStep(2)}
+                style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#8a8a95', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 18l-6-6 6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Back
+              </button>
+              <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '28px', color: '#0a0a14', marginBottom: '6px' }}>Auto-lock timer</h2>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#4a4a55', marginBottom: '8px' }}>Lock the app after inactivity.</p>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '12px', color: '#8a8a95', marginBottom: '24px' }}>Recommended for shared or hospital devices. You can change this in Help anytime.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {TIMEOUTS.map(({ value, label, desc }, i) => (
+                  <motion.button
+                    key={value}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleTimeoutSelect(value)}
+                    style={{ ...cardStyle, justifyContent: 'space-between' }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '15px', fontWeight: 600, color: '#0a0a14', margin: 0 }}>{label}</p>
+                      <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11px', color: '#8a8a95', margin: '2px 0 0' }}>{desc}</p>
+                    </div>
+                    {value === 5 && (
+                      <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '9px', fontWeight: 700, color: '#2563EB', background: '#EFF6FF', borderRadius: '6px', padding: '2px 7px', letterSpacing: '0.5px', flexShrink: 0 }}>
+                        RECOMMENDED
+                      </span>
+                    )}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginLeft: '8px' }}>
+                      <path d="M9 18l6-6-6-6" stroke="#8a8a95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </motion.button>
+                ))}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

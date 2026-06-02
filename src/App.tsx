@@ -10,11 +10,13 @@ import ReportModal from './components/ReportModal'
 import VaultSheet from './components/VaultSheet'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import AuthScreen from './components/AuthScreen'
+import AlarmModal from './components/AlarmModal'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { useSync } from './lib/useSync'
 import { useAuth } from './lib/useAuth'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
+import { useEffect, useRef } from 'react'
 
 type Tab = 'track' | 'log' | 'cal'
 
@@ -24,13 +26,34 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [vaultOpen, setVaultOpen] = useState(false)
+  const [alarmOpen, setAlarmOpen] = useState(false)
+  const [locked, setLocked] = useState(false)
+  const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const role = useStore((s) => s.role)
   const entries = useStore((s: any) => s.entries)
   const vault = useStore((s) => s.vault)
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
   const clearSession = useStore((s) => s.clearSession)
+  const lockTimeout = useStore((s: any) => s.lockTimeout) as number
   const isDark = theme === 'dark'
+
+  // Inactivity lock
+  useEffect(() => {
+    if (!user || lockTimeout === 0) return
+    const ms = lockTimeout * 60 * 1000
+    const reset = () => {
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
+      lockTimerRef.current = setTimeout(() => setLocked(true), ms)
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => {
+      events.forEach(e => window.removeEventListener(e, reset))
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
+    }
+  }, [user, lockTimeout])
 
   useAutoArchive()
   useSync(user)
@@ -77,6 +100,32 @@ export default function App() {
   // Gate entire app behind auth
   if (!user) {
     return <AuthScreen />
+  }
+
+  // Inactivity lock screen
+  if (locked) {
+    return (
+      <div className="flex flex-col items-center justify-center" style={{ height: '100dvh', background: '#050912' }}>
+        <div className="flex flex-col items-center gap-4 px-6 w-full max-w-sm">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="2" stroke="#3B82F6" strokeWidth="1.8" />
+              <path d="M7 11V7a5 5 0 0110 0v4" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h1 className="font-display font-extrabold text-2xl text-white">eTally</h1>
+          <p className="text-sm font-body text-center" style={{ color: '#64748B' }}>Locked due to inactivity</p>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setLocked(false)}
+            className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white mt-4"
+            style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
+          >
+            UNLOCK
+          </motion.button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -207,6 +256,24 @@ export default function App() {
               <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>HELP</span>
             </motion.button>
 
+            {/* Alarm */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setAlarmOpen(true)}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.29, type: 'spring', stiffness: 320, damping: 28 }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.07)' }}
+              aria-label="Alarm clock"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="13" r="7" stroke="#94A3B8" strokeWidth="1.8" />
+                <path d="M12 10v3l2 2" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 3L2 6M22 6l-3-3" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </motion.button>
+
             {/* Sign Out */}
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -236,6 +303,7 @@ export default function App() {
 
       <BottomNav active={tab} setActive={(t: any) => handleTabChange(t)} />
 
+      <AlarmModal isOpen={alarmOpen} onClose={() => setAlarmOpen(false)} />
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
       <ReportModal
         isOpen={reportOpen}
