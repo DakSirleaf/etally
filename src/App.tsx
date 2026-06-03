@@ -193,7 +193,7 @@ function MainApp() {
             </p>
           </motion.button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Theme toggle */}
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -202,17 +202,17 @@ function MainApp() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.22, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.2)' }}
+              style={{ background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.35)' }}
               aria-label="Toggle theme"
             >
               {isDark ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="4" stroke="#94A3B8" strokeWidth="1.8" />
-                  <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="4" stroke="#818CF8" strokeWidth="1.8" />
+                  <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#818CF8" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
               ) : (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="#818CF8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )}
             </motion.button>
@@ -225,17 +225,14 @@ function MainApp() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.24, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center relative"
-              style={{ background: vault.length > 0 ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(139,92,246,0.25)', border: '1px solid rgba(139,92,246,0.35)' }}
               aria-label="Vault"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7l2-4h14l2 4M3 7h18M10 11h4" stroke={vault.length > 0 ? '#8B5CF6' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7l2-4h14l2 4M3 7h18M10 11h4" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {vault.length > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-display font-bold flex items-center justify-center text-white"
-                  style={{ background: '#8B5CF6' }}
-                >
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-display font-bold flex items-center justify-center text-white" style={{ background: '#8B5CF6' }}>
                   {vault.length}
                 </span>
               )}
@@ -249,12 +246,12 @@ function MainApp() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.26, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: entries.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.3)' }}
               aria-label="Export report"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={entries.length > 0 ? '#10B981' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M7 10l5 5 5-5M12 15V3" stroke={entries.length > 0 ? '#10B981' : '#94A3B8'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 10l5 5 5-5M12 15V3" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
 
@@ -266,29 +263,32 @@ function MainApp() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.28, type: 'spring', stiffness: 320, damping: 28 }}
               className="h-10 px-3 rounded-2xl flex items-center justify-center gap-1.5"
-              style={{ background: 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)' }}
               aria-label="Help"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#94A3B8" strokeWidth="1.8" />
-                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
-                <circle cx="12" cy="17" r="0.5" fill="#94A3B8" stroke="#94A3B8" strokeWidth="1.5" />
+                <circle cx="12" cy="12" r="9" stroke="#60A5FA" strokeWidth="1.8" />
+                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="12" cy="17" r="0.5" fill="#60A5FA" stroke="#60A5FA" strokeWidth="1.5" />
               </svg>
-              <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>HELP</span>
+              <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#60A5FA' }}>HELP</span>
             </motion.button>
 
-            {/* Developer Credit */}
+            {/* About the Developer */}
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setCreditOpen(true)}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.29, type: 'spring', stiffness: 320, damping: 28 }}
-              className="h-10 px-3 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.07)' }}
-              aria-label="About"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.3)' }}
+              aria-label="About the developer"
             >
-              <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>KTL</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="4" stroke="#FBBF24" strokeWidth="1.8" />
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#FBBF24" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
             </motion.button>
 
             {/* Alarm */}
@@ -297,15 +297,15 @@ function MainApp() {
               onClick={() => setAlarmOpen(true)}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.29, type: 'spring', stiffness: 320, damping: 28 }}
+              transition={{ delay: 0.30, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(236,72,153,0.2)', border: '1px solid rgba(236,72,153,0.3)' }}
               aria-label="Alarm clock"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="13" r="7" stroke="#94A3B8" strokeWidth="1.8" />
-                <path d="M12 10v3l2 2" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 3L2 6M22 6l-3-3" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="12" cy="13" r="7" stroke="#F472B6" strokeWidth="1.8" />
+                <path d="M12 10v3l2 2" stroke="#F472B6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 3L2 6M22 6l-3-3" stroke="#F472B6" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
             </motion.button>
 
@@ -315,15 +315,15 @@ function MainApp() {
               onClick={handleSignOut}
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.30, type: 'spring', stiffness: 320, damping: 28 }}
+              transition={{ delay: 0.31, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)' }}
               aria-label="Sign out"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M16 17l5-5-5-5" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M21 12H9" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 17l5-5-5-5" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 12H9" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
           </div>
@@ -365,30 +365,37 @@ function MainApp() {
                 <div className="w-10 h-1 rounded-full bg-slate-700" />
               </div>
               <div className="px-6 pb-2 flex flex-col items-center text-center">
-                <motion.img
-                  src="/icon-512.png"
-                  alt="eTally"
+                {/* Developer avatar placeholder */}
+                <motion.div
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-                  style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 16 }}
-                />
-                <h1 className="font-display font-extrabold text-2xl text-white tracking-tight">eTally</h1>
-                <p className="text-[11px] text-blue-400 font-body mt-1 mb-5">Time tracking for eCats · v2.0</p>
-                <div className="h-px w-full bg-slate-800 mb-5" />
-                <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">DEVELOPED BY</p>
-                <p className="font-display font-bold text-xl text-white">A. Ace Sirleaf</p>
-                <p className="text-[12px] text-blue-400 font-body mt-1">Kola Technology Laboratory</p>
-                <div className="flex flex-wrap justify-center gap-1.5 mt-4">
-                  {['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP'].map(d => (
-                    <span key={d} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>{d}</span>
-                  ))}
-                </div>
-                <p className="text-[10px] font-body leading-relaxed mt-4 mb-1" style={{ color: '#64748B' }}>
-                  Founder · Software Developer · Psychiatric Nursing Professional.<br />
-                  Building clinical tools that bridge direct patient care and modern technology.
-                </p>
-                <p className="text-[10px] font-display font-bold tracking-widest text-slate-600 italic mt-2 mb-6">"Dare to build it yourself."</p>
+                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4 mt-2"
+                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #7C3AED)', border: '3px solid rgba(255,255,255,0.08)' }}
+                >
+                  <span className="font-display font-extrabold text-2xl text-white">AS</span>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                  <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">ABOUT THE DEVELOPER</p>
+                  <p className="font-display font-bold text-2xl text-white">A. Ace Sirleaf</p>
+                  <p className="text-[12px] text-blue-400 font-body mt-1">Founder · Kola Technology Laboratory</p>
+                </motion.div>
+
+                <div className="h-px w-full bg-slate-800 my-4" />
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full">
+                  <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                    {['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP'].map(d => (
+                      <span key={d} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>{d}</span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] font-body leading-relaxed mb-1" style={{ color: '#64748B' }}>
+                    Psychiatric nursing professional and software developer building clinical tools that bridge direct patient care and modern technology.
+                  </p>
+                  <p className="text-[10px] font-display font-bold tracking-widest text-slate-600 italic mt-3 mb-5">"Dare to build it yourself."</p>
+                </motion.div>
+
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setCreditOpen(false)}
