@@ -18,6 +18,8 @@ import { useSync } from './lib/useSync'
 import { useAuth } from './lib/useAuth'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
 import { useEffect, useRef } from 'react'
+import { useAlarm } from './lib/useAlarm'
+import type { Alarm } from './lib/useAlarm'
 
 type Tab = 'track' | 'log' | 'cal'
 
@@ -32,6 +34,7 @@ export default function App() {
 
 function MainApp() {
   const { user, loading, signOut } = useAuth()
+  const { alarms, setAlarms, firing, snoozed, previewTone, dismissFiring, snoozeFiring, cancelSnooze } = useAlarm()
   const [creditOpen, setCreditOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('track')
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -338,7 +341,49 @@ function MainApp() {
 
       <BottomNav active={tab} setActive={(t: any) => handleTabChange(t)} />
 
-      <AlarmModal isOpen={alarmOpen} onClose={() => setAlarmOpen(false)} />
+      <AlarmModal
+        isOpen={alarmOpen}
+        onClose={() => setAlarmOpen(false)}
+        alarms={alarms}
+        setAlarms={setAlarms}
+        snoozed={snoozed}
+        cancelSnooze={cancelSnooze}
+        previewTone={previewTone}
+      />
+
+      {/* Alarm firing overlay — always mounted at app level */}
+      <AnimatePresence>
+        {firing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+            style={{ background: 'rgba(5,9,18,0.85)', backdropFilter: 'blur(12px)' }}
+          >
+            <div className="rounded-3xl px-6 py-8 text-center w-full max-w-sm"
+              style={{ background: '#0F172A', border: '1px solid rgba(37,99,235,0.3)' }}>
+              <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="text-5xl mb-4">
+                ⏰
+              </motion.div>
+              <p className="font-display font-extrabold text-3xl text-white tabular-nums mb-1">
+                {(() => { const h = firing.hour % 12 || 12; const ap = firing.hour < 12 ? 'AM' : 'PM'; return `${h}:${String(firing.minute).padStart(2,'0')} ${ap}` })()}
+              </p>
+              <p className="font-display font-bold text-base text-blue-400 mb-6">{firing.label}</p>
+              <div className="flex gap-3">
+                <motion.button whileTap={{ scale: 0.95 }} onClick={snoozeFiring}
+                  className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  SNOOZE 5 MIN
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.95 }} onClick={dismissFiring}
+                  className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
+                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.4)' }}>
+                  DISMISS
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
 
       {/* Developer Credit Modal */}
