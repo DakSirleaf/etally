@@ -15,7 +15,28 @@ interface ParsedDay {
 const currentYear = new Date().getFullYear()
 
 const SYSTEM_PROMPT =
-  `You are a schedule parser. The image is a photo of a printed monthly hospital shift schedule for a single employee. The schedule shows a calendar grid with days of the week as column headers (Sunday through Saturday) and dates listed under each day with a shift code below each date. Extract every date that has a code. Code meanings: "N" means a night shift that STARTS the previous calendar day at 22:45 and ENDS on the listed date at 07:15, type is "scheduled". "VACD" means approved vacation day, type is "vacation", no times needed. Any other shift codes should be mapped to "scheduled" with no times. Return ONLY a valid JSON array with no extra text: [{"date": "YYYY-MM-DD", "type": "scheduled"|"vacation", "startTime": "22:45", "endTime": "07:15"}]. Use year ${currentYear}. Return nothing but the JSON array.`
+  `You are a schedule parser for a New Jersey state psychiatric hospital employee schedule.
+
+The image is a printed monthly schedule showing a calendar grid. Each day cell contains a date (MM/DD/YYYY format) and optionally a shift code below it.
+
+SHIFT CODE MEANINGS — read these exactly:
+- "N" = scheduled night shift. Type: "scheduled". Start time: "22:45" (previous calendar day), End time: "07:15" (the listed date).
+- "HN" = this date is a state/federal holiday. The employee was scheduled to work nights on this date (holiday night shift). Type: "holiday". Start time: "22:45" (previous calendar day), End time: "07:15" (the listed date).
+- "SCKN" = employee called out sick on a scheduled night shift. Type: "callout". No times needed.
+- "VACD" or "VAC" = vacation day. Type: "vacation". No times needed.
+- "OT" or "OTN" = overtime night shift. Type: "ot". Start time: "22:45", End time: "07:15".
+- Blank / no code = regular day off. DO NOT include these dates in the output.
+
+CRITICAL RULES:
+1. Only include dates that have a shift code (N, HN, SCKN, VACD, OT etc). Skip all blank days completely.
+2. The schedule may span two calendar years — use the year printed on each date exactly as shown.
+3. Dates are in MM/DD/YYYY format in the image — convert to YYYY-MM-DD in output.
+4. For night shifts (N, HN, OT): the startTime "22:45" refers to the PREVIOUS calendar day, but the date in the output should be the date SHOWN in the schedule cell (the end date of the shift).
+
+Return ONLY a valid JSON array with no markdown, no explanation, no extra text:
+[{"date": "YYYY-MM-DD", "type": "scheduled"|"holiday"|"callout"|"vacation"|"ot", "startTime": "22:45", "endTime": "07:15"}]
+
+Return nothing but the JSON array.`
 
 const SUPPORTED_TYPES: Record<string, string> = {
   'image/jpeg': 'image/jpeg',
@@ -37,6 +58,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const TYPE_OPTIONS: { value: DayType; label: string }[] = [
   { value: 'scheduled',    label: 'Scheduled' },
+  { value: 'holiday',      label: 'Holiday' },
   { value: 'ot',           label: 'OT' },
   { value: 'vacation',     label: 'Vacation' },
   { value: 'off',          label: 'Day Off' },
@@ -105,13 +127,13 @@ export default function SchedulePhotoParser({ isOpen, onClose }: SchedulePhotoPa
         },
         body: JSON.stringify({
           model: 'claude-opus-4-6',
-          max_tokens: 1500,
+          max_tokens: 2500,
           system: SYSTEM_PROMPT,
           messages: [{
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-              { type: 'text', text: 'Parse all shift dates from this schedule image.' },
+              { type: 'text', text: 'Parse all shift dates from this schedule image. Remember: blank days mean day off — skip them. Only include days with shift codes.' },
             ],
           }],
         }),
