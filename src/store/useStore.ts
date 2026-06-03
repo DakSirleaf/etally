@@ -50,6 +50,7 @@ interface StoreState {
   toggleTheme: () => void
   setShiftPreference: (pref: ShiftPreference) => void
   setLockTimeout: (minutes: number) => void
+  resetOnboarding: () => void
 
   archiveClosedPeriods: () => void
   updateVaultPeriod: (period: VaultPeriod) => void
@@ -87,9 +88,8 @@ export const useStore = create<StoreState>()(
         set((state) => ({ entries: state.entries.map((e) => (e.id === entry.id ? entry : e)) })),
       clearAll: () => set({ entries: [] }),
 
-      // Clears all user data on sign out — role, entries, schedule, vault
+      // Clears session data on sign out — role and shift kept as device preferences
       clearSession: () => set({
-        role: null,
         entries: [],
         schedule: [],
         vault: [],
@@ -117,6 +117,7 @@ export const useStore = create<StoreState>()(
         set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
       setShiftPreference: (pref) => set({ shiftPreference: pref }),
       setLockTimeout: (minutes) => set({ lockTimeout: minutes }),
+      resetOnboarding: () => set({ role: null, shiftPreference: null, lockTimeout: 0 }),
 
       archiveClosedPeriods: () => {
         const state = get()

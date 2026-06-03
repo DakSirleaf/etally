@@ -11,6 +11,7 @@ import VaultSheet from './components/VaultSheet'
 import LegacyMigrationPrompt from './components/LegacyMigrationPrompt'
 import AuthScreen from './components/AuthScreen'
 import AlarmModal from './components/AlarmModal'
+import SplashScreen from './components/SplashScreen'
 import { useStore } from './store/useStore'
 import { useAutoArchive } from './lib/useAutoArchive'
 import { useSync } from './lib/useSync'
@@ -22,6 +23,8 @@ type Tab = 'track' | 'log' | 'cal'
 
 export default function App() {
   const { user, loading, signOut } = useAuth()
+  const [showSplash, setShowSplash] = useState(true)
+  const [creditOpen, setCreditOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('track')
   const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -73,6 +76,11 @@ export default function App() {
   const handleSignOut = async () => {
     await signOut()
     clearSession()
+  }
+
+  // Splash screen — shows every app open
+  if (showSplash) {
+    return <SplashScreen onEnter={() => setShowSplash(false)} />
   }
 
   // Show loading splash while session resolves
@@ -153,7 +161,7 @@ export default function App() {
         style={{
           paddingTop: 'max(1.1rem, env(safe-area-inset-top, 1.1rem))',
           background: isDark ? '#050912' : '#0F172A',
-          borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none',
+          borderBottom: '2px solid #2563EB',
         }}
       >
         <div className="flex items-center justify-between">
@@ -191,7 +199,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.22, type: 'spring', stiffness: 320, damping: 28 }}
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.07)' }}
+              style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.2)' }}
               aria-label="Toggle theme"
             >
               {isDark ? (
@@ -266,6 +274,20 @@ export default function App() {
               <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>HELP</span>
             </motion.button>
 
+            {/* Developer Credit */}
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setCreditOpen(true)}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.29, type: 'spring', stiffness: 320, damping: 28 }}
+              className="h-10 px-3 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.07)' }}
+              aria-label="About"
+            >
+              <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#94A3B8' }}>KTL</span>
+            </motion.button>
+
             {/* Alarm */}
             <motion.button
               whileTap={{ scale: 0.88 }}
@@ -315,6 +337,68 @@ export default function App() {
 
       <AlarmModal isOpen={alarmOpen} onClose={() => setAlarmOpen(false)} />
       <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
+
+      {/* Developer Credit Modal */}
+      <AnimatePresence>
+        {creditOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              style={{ background: 'rgba(5,9,18,0.7)', backdropFilter: 'blur(8px)' }}
+              onClick={() => setCreditOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
+              style={{
+                background: 'linear-gradient(160deg, #050912 0%, #0A1128 60%, #080D1E 100%)',
+                paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 rounded-full bg-slate-700" />
+              </div>
+              <div className="px-6 pb-2 flex flex-col items-center text-center">
+                <motion.img
+                  src="/icon-512.png"
+                  alt="eTally"
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                  style={{ width: 72, height: 72, borderRadius: 18, marginBottom: 16 }}
+                />
+                <h1 className="font-display font-extrabold text-2xl text-white tracking-tight">eTally</h1>
+                <p className="text-[11px] text-blue-400 font-body mt-1 mb-5">Time tracking for eCats · v2.0</p>
+                <div className="h-px w-full bg-slate-800 mb-5" />
+                <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">DEVELOPED BY</p>
+                <p className="font-display font-bold text-xl text-white">A. Ace Sirleaf</p>
+                <p className="text-[12px] text-blue-400 font-body mt-1">Kola Technology Laboratory</p>
+                <div className="flex flex-wrap justify-center gap-1.5 mt-4">
+                  {['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP'].map(d => (
+                    <span key={d} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>{d}</span>
+                  ))}
+                </div>
+                <p className="text-[10px] font-body leading-relaxed mt-4 mb-1" style={{ color: '#64748B' }}>
+                  Founder · Software Developer · Psychiatric Nursing Professional.<br />
+                  Building clinical tools that bridge direct patient care and modern technology.
+                </p>
+                <p className="text-[10px] font-display font-bold tracking-widest text-slate-600 italic mt-2 mb-6">"Dare to build it yourself."</p>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setCreditOpen(false)}
+                  className="w-full py-4 rounded-2xl font-display font-bold text-xs tracking-widest text-white"
+                  style={{ background: '#0a0a14', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  CLOSE
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       <ReportModal
         isOpen={reportOpen}
         onClose={() => { setReportOpen(false); goHome() }}

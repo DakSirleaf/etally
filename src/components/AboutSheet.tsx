@@ -46,12 +46,12 @@ const steps = [
   { step: '11', title: 'View & Edit the Log', desc: 'Switch to the LOG tab to see all entries. Tap the pencil icon to edit any entry. Tap the trash icon and confirm to delete — always confirmed before deleting.' },
   { step: '12', title: 'Export Your Report', desc: 'Tap the green download icon in the header anytime to generate a pay period report. Preview, print, save as PDF, or download as CSV for Excel.' },
   { step: '13', title: 'Vault & Pay Period Archive', desc: 'Tap the gold vault icon in the header to view archived pay periods. Past periods are automatically moved to the Vault when a new pay period begins.' },
-  { step: '14', title: 'Alarm Clock', desc: 'Tap the clock icon in the header to open the Alarm Clock. Set up to 3 alarms with custom labels and tones — Pulse, Chapel Bell, Buzzer, Chime, or Alert. Tap a tone to preview it. Alarms fire with sound and vibration.' },
-  { step: '15', title: 'Auto-Lock', desc: 'If you set an inactivity timeout during setup, the app locks automatically after the chosen time with no activity. Tap UNLOCK to resume. Change the timeout anytime in Help & Support.' },
-  { step: '16', title: 'Change Your Role or Shift', desc: 'Use the YOUR ROLE and YOUR SHIFT sections above to update your role or default shift times anytime without losing your data.' },
+  { step: '14', title: 'Alarm Clock', desc: 'Tap the clock icon in the header to open the Alarm Clock. Set up to 3 alarms with custom labels, tones, and repeat modes (Once, Daily, Weekdays). Tap SNOOZE for 5 extra minutes or DISMISS to clear.' },
+  { step: '15', title: 'Auto-Lock', desc: 'If you set an inactivity timeout during setup, the app locks automatically after the chosen time with no activity. Tap UNLOCK to resume. Change the timeout anytime using the AUTO-LOCK TIMER section above.' },
+  { step: '16', title: 'Developer Credit', desc: 'Tap the KTL button in the header to view the developer credit screen for eTally by Kola Technology Laboratory.' },
+  { step: '17', title: 'Reset Onboarding', desc: 'Tap RESET ONBOARDING below to re-run the role, shift, and auto-lock setup from scratch. Your logged data is not affected.' },
+  { step: '18', title: 'Change Your Role or Shift', desc: 'Use the YOUR ROLE and YOUR SHIFT sections above to update your role or default shift times anytime without losing your data.' },
 ]
-
-const degrees = ['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP']
 
 export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
   const role = useStore((s: any) => s.role) as StaffRole | null
@@ -60,15 +60,23 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
   const setShiftPreference = useStore((s: any) => s.setShiftPreference)
   const lockTimeout = useStore((s: any) => s.lockTimeout) as number
   const setLockTimeout = useStore((s: any) => s.setLockTimeout)
+  const resetOnboarding = useStore((s: any) => s.resetOnboarding)
   const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor } = useTheme()
   const { signOut } = useAuth()
   const clearSession = useStore((s: any) => s.clearSession)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
     clearSession()
     setConfirmSignOut(false)
+    onClose()
+  }
+
+  const handleResetOnboarding = () => {
+    resetOnboarding()
+    setConfirmReset(false)
     onClose()
   }
 
@@ -87,19 +95,14 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
       {isOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
             className="fixed inset-0 z-40"
             style={{ background: 'rgba(5,9,18,0.6)', backdropFilter: 'blur(6px)' }}
             onClick={onClose}
           />
-
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl overflow-hidden"
             style={{
@@ -115,33 +118,10 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
 
             <div className="overflow-y-auto px-4" style={{ maxHeight: 'calc(92dvh - 2rem)' }}>
 
-              {/* Developer credit */}
-              <div className="mt-3 mb-4 rounded-3xl px-5 py-6" style={{ background: 'linear-gradient(135deg, #050912 0%, #0F172A 100%)' }}>
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 className="font-display font-extrabold text-2xl text-white tracking-tight">eTally</h1>
-                    <p className="text-[11px] text-blue-400 font-body mt-0.5">A time tracker for eCats</p>
-                  </div>
-                  <span className="text-[9px] font-display font-bold tracking-widest text-slate-600 bg-slate-800 px-2 py-1 rounded-lg">v2</span>
-                </div>
-                <div className="h-px bg-slate-800 mb-4" />
-                <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">DEVELOPED BY</p>
-                <p className="font-display font-bold text-lg text-white leading-tight">A. Ace Sirleaf</p>
-                <p className="text-[11px] text-blue-400 font-body mt-0.5">Kola Technology Laboratory</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {degrees.map((deg) => (
-                    <span key={deg} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>
-                      {deg}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-4 pt-4 border-t border-slate-800">
-                  <p className="text-[10px] font-body leading-relaxed" style={{ color: '#64748B' }}>
-                    Founder · Software Developer · Psychiatric Nursing Professional.<br />
-                    Building clinical tools that bridge direct patient care and modern technology.
-                  </p>
-                  <p className="text-[10px] font-display font-bold tracking-widest text-slate-500 italic mt-3">"Dare to build it yourself."</p>
-                </div>
+              {/* Header */}
+              <div className="mt-3 mb-4 text-center">
+                <h2 className="font-display font-extrabold text-xl" style={{ color: textPrimary }}>Help & Settings</h2>
+                <p className="text-[11px] font-body mt-1" style={{ color: textSecondary }}>eTally v2.0</p>
               </div>
 
               {/* Role */}
@@ -149,18 +129,14 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 <p className="text-[9px] font-display font-bold tracking-widest mb-3 px-1" style={{ color: labelColor }}>YOUR ROLE</p>
                 <div className="flex gap-2 flex-wrap">
                   {roles.map(({ role: r, label }) => (
-                    <motion.button
-                      key={r}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setRole(r)}
+                    <motion.button key={r} whileTap={{ scale: 0.95 }} onClick={() => setRole(r)}
                       className="flex-1 py-3 rounded-2xl font-display font-extrabold text-sm transition-all"
                       style={{
                         minWidth: '60px',
                         background: role === r ? 'rgba(15,17,38,0.08)' : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
                         border: role === r ? '1.5px solid rgba(15,17,38,0.2)' : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
                         color: role === r ? '#0a0a14' : isDark ? '#334155' : '#94A3B8',
-                      }}
-                    >
+                      }}>
                       {label}
                     </motion.button>
                   ))}
@@ -173,17 +149,13 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 <p className="text-[9px] font-display font-bold tracking-widest mb-3 px-1" style={{ color: labelColor }}>YOUR SHIFT</p>
                 <div className="flex gap-2">
                   {shifts.map(({ id, label }) => (
-                    <motion.button
-                      key={id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setShiftPreference(id)}
+                    <motion.button key={id} whileTap={{ scale: 0.95 }} onClick={() => setShiftPreference(id)}
                       className="flex-1 py-3 rounded-2xl font-display font-bold text-xs transition-all"
                       style={{
                         background: shiftPreference === id ? 'rgba(15,17,38,0.08)' : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
                         border: shiftPreference === id ? '1.5px solid rgba(15,17,38,0.2)' : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
                         color: shiftPreference === id ? '#0a0a14' : isDark ? '#334155' : '#94A3B8',
-                      }}
-                    >
+                      }}>
                       {label}
                     </motion.button>
                   ))}
@@ -191,22 +163,18 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 <p className="text-[10px] font-body mt-2 px-1" style={{ color: textSecondary }}>{shiftLabel}</p>
               </div>
 
-              {/* Auto-lock timeout */}
+              {/* Auto-lock */}
               <div className="mb-4">
                 <p className="text-[9px] font-display font-bold tracking-widest mb-3 px-1" style={{ color: labelColor }}>AUTO-LOCK TIMER</p>
                 <div className="flex gap-2">
                   {timeoutOptions.map(({ value, label }) => (
-                    <motion.button
-                      key={value}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setLockTimeout(value)}
+                    <motion.button key={value} whileTap={{ scale: 0.95 }} onClick={() => setLockTimeout(value)}
                       className="flex-1 py-3 rounded-2xl font-display font-bold text-xs transition-all"
                       style={{
                         background: lockTimeout === value ? 'rgba(15,17,38,0.08)' : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
                         border: lockTimeout === value ? '1.5px solid rgba(15,17,38,0.2)' : isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
                         color: lockTimeout === value ? '#0a0a14' : isDark ? '#334155' : '#94A3B8',
-                      }}
-                    >
+                      }}>
                       {label}
                     </motion.button>
                   ))}
@@ -216,17 +184,15 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 </p>
               </div>
 
-              {/* Contact */}
+              {/* Support */}
               <div className="mb-4 rounded-3xl px-4 py-4" style={{ background: surface, border: surfaceBorder }}>
                 <p className="text-[9px] font-display font-bold tracking-widest mb-3" style={{ color: labelColor }}>HELP & SUPPORT</p>
                 <p className="text-[11px] font-body mb-3" style={{ color: textSecondary }}>Have a question, found a bug, or want to suggest a feature?</p>
                 <div className="flex flex-col gap-2">
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
+                  <motion.button whileTap={{ scale: 0.97 }}
                     onClick={() => { window.location.href = 'tel:6092712288' }}
                     className="flex items-center gap-3 rounded-2xl px-4 py-3 w-full text-left"
-                    style={{ background: isDark ? 'rgba(37,99,235,0.1)' : '#EFF6FF', border: isDark ? '1px solid rgba(37,99,235,0.2)' : '1px solid #BFDBFE' }}
-                  >
+                    style={{ background: isDark ? 'rgba(37,99,235,0.1)' : '#EFF6FF', border: isDark ? '1px solid rgba(37,99,235,0.2)' : '1px solid #BFDBFE' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.06 1.18 2 2 0 012.03 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -235,12 +201,10 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                       <p className="text-xs font-display font-bold" style={{ color: textPrimary }}>609-271-2288</p>
                     </div>
                   </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
+                  <motion.button whileTap={{ scale: 0.97 }}
                     onClick={() => { window.location.href = 'mailto:aasirleaf@gmail.com' }}
                     className="flex items-center gap-3 rounded-2xl px-4 py-3 w-full text-left"
-                    style={{ background: isDark ? 'rgba(16,185,129,0.08)' : '#ECFDF5', border: isDark ? '1px solid rgba(16,185,129,0.2)' : '1px solid #A7F3D0' }}
-                  >
+                    style={{ background: isDark ? 'rgba(16,185,129,0.08)' : '#ECFDF5', border: isDark ? '1px solid rgba(16,185,129,0.2)' : '1px solid #A7F3D0' }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                       <polyline points="22,6 12,13 2,6" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -269,52 +233,31 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 </div>
               </div>
 
-              {/* Sign out */}
-              <div className="mb-4">
+              {/* Reset Onboarding */}
+              <div className="mb-3">
                 <AnimatePresence mode="wait">
-                  {!confirmSignOut ? (
-                    <motion.button
-                      key="signout-btn"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setConfirmSignOut(true)}
+                  {!confirmReset ? (
+                    <motion.button key="reset-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      whileTap={{ scale: 0.97 }} onClick={() => setConfirmReset(true)}
                       className="w-full py-3.5 rounded-2xl font-display font-bold text-xs tracking-widest"
-                      style={{
-                        background: isDark ? 'rgba(239,68,68,0.08)' : '#FFF1F2',
-                        border: isDark ? '1px solid rgba(239,68,68,0.15)' : '1px solid #FECDD3',
-                        color: '#b42318',
-                      }}
-                    >
-                      SIGN OUT
+                      style={{ background: isDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB', border: isDark ? '1px solid rgba(245,158,11,0.15)' : '1px solid #FDE68A', color: '#D97706' }}>
+                      RESET ONBOARDING
                     </motion.button>
                   ) : (
-                    <motion.div
-                      key="signout-confirm"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                    <motion.div key="reset-confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                       className="rounded-2xl px-4 py-4"
-                      style={{ background: isDark ? 'rgba(239,68,68,0.08)' : '#FFF1F2', border: isDark ? '1px solid rgba(239,68,68,0.2)' : '1px solid #FECDD3' }}
-                    >
-                      <p className="text-[10px] font-display font-bold tracking-widest mb-1" style={{ color: '#b42318' }}>SIGN OUT?</p>
-                      <p className="text-[11px] font-body mb-3" style={{ color: textSecondary }}>Your data is saved to the cloud and will be here when you sign back in.</p>
+                      style={{ background: isDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB', border: isDark ? '1px solid rgba(245,158,11,0.2)' : '1px solid #FDE68A' }}>
+                      <p className="text-[10px] font-display font-bold tracking-widest mb-1" style={{ color: '#D97706' }}>RESET ONBOARDING?</p>
+                      <p className="text-[11px] font-body mb-3" style={{ color: textSecondary }}>This will clear your role, shift, and auto-lock settings. Your logged data is not affected.</p>
                       <div className="flex gap-2">
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          onClick={handleSignOut}
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={handleResetOnboarding}
                           className="flex-1 py-2.5 rounded-xl font-display font-bold text-[10px] tracking-widest text-white"
-                          style={{ background: '#b42318' }}
-                        >
-                          YES, SIGN OUT
+                          style={{ background: '#D97706' }}>
+                          YES, RESET
                         </motion.button>
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => setConfirmSignOut(false)}
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setConfirmReset(false)}
                           className="flex-1 py-2.5 rounded-xl font-display font-bold text-[10px] tracking-widest"
-                          style={{ background: surface, border: surfaceBorder, color: textSecondary }}
-                        >
+                          style={{ background: surface, border: surfaceBorder, color: textSecondary }}>
                           CANCEL
                         </motion.button>
                       </div>
@@ -323,15 +266,44 @@ export default function AboutSheet({ isOpen, onClose }: AboutSheetProps) {
                 </AnimatePresence>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={onClose}
+              {/* Sign out */}
+              <div className="mb-4">
+                <AnimatePresence mode="wait">
+                  {!confirmSignOut ? (
+                    <motion.button key="signout-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      whileTap={{ scale: 0.97 }} onClick={() => setConfirmSignOut(true)}
+                      className="w-full py-3.5 rounded-2xl font-display font-bold text-xs tracking-widest"
+                      style={{ background: isDark ? 'rgba(239,68,68,0.08)' : '#FFF1F2', border: isDark ? '1px solid rgba(239,68,68,0.15)' : '1px solid #FECDD3', color: '#b42318' }}>
+                      SIGN OUT
+                    </motion.button>
+                  ) : (
+                    <motion.div key="signout-confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="rounded-2xl px-4 py-4"
+                      style={{ background: isDark ? 'rgba(239,68,68,0.08)' : '#FFF1F2', border: isDark ? '1px solid rgba(239,68,68,0.2)' : '1px solid #FECDD3' }}>
+                      <p className="text-[10px] font-display font-bold tracking-widest mb-1" style={{ color: '#b42318' }}>SIGN OUT?</p>
+                      <p className="text-[11px] font-body mb-3" style={{ color: textSecondary }}>Your data is saved to the cloud and will be here when you sign back in.</p>
+                      <div className="flex gap-2">
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={handleSignOut}
+                          className="flex-1 py-2.5 rounded-xl font-display font-bold text-[10px] tracking-widest text-white"
+                          style={{ background: '#b42318' }}>
+                          YES, SIGN OUT
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setConfirmSignOut(false)}
+                          className="flex-1 py-2.5 rounded-xl font-display font-bold text-[10px] tracking-widest"
+                          style={{ background: surface, border: surfaceBorder, color: textSecondary }}>
+                          CANCEL
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <motion.button whileTap={{ scale: 0.97 }} onClick={onClose}
                 className="w-full mb-2 py-4 rounded-2xl font-display font-bold text-xs tracking-widest text-white"
-                style={{ background: '#0a0a14' }}
-              >
+                style={{ background: '#0a0a14' }}>
                 CLOSE
               </motion.button>
-
             </div>
           </motion.div>
         </>

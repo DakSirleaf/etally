@@ -1,67 +1,134 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface SplashScreenProps {
-  visible: boolean
-  onComplete: () => void
+  onEnter: () => void
 }
 
-export default function SplashScreen({ visible, onComplete }: SplashScreenProps) {
-  useEffect(() => {
-    if (!visible) return
-    const t = setTimeout(onComplete, 2500)
-    return () => clearTimeout(t)
-  }, [visible, onComplete])
+export default function SplashScreen({ onEnter }: SplashScreenProps) {
+  const [tapped, setTapped] = useState(false)
+
+  const handleTap = () => {
+    if (tapped) return
+    setTapped(true)
+    setTimeout(onEnter, 600)
+  }
 
   return (
     <AnimatePresence>
-      {visible && (
+      {!tapped ? (
         <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.45, ease: 'easeInOut' }}
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center"
-          style={{ background: '#050912' }}
+          key="splash"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center cursor-pointer select-none"
+          style={{ background: 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)' }}
+          onClick={handleTap}
         >
-          {/* Wordmark */}
-          <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-            className="font-display font-black text-white leading-none tracking-tight"
-            style={{ fontSize: '56px', letterSpacing: '-2px' }}
+          {/* Glow ring behind logo */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.4, 1.1], opacity: [0, 0.3, 0.15] }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
+            className="absolute rounded-full"
+            style={{ width: 220, height: 220, background: 'radial-gradient(circle, #3B82F6 0%, transparent 70%)' }}
+          />
+
+          {/* Outer pulse ring */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: [0.8, 1.6], opacity: [0.4, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 1 }}
+            className="absolute rounded-full border"
+            style={{ width: 160, height: 160, borderColor: 'rgba(59,130,246,0.4)' }}
+          />
+
+          {/* Logo */}
+          <motion.div
+            initial={{ scale: 0.3, opacity: 0, y: 30 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.3 }}
+            className="relative z-10 mb-8"
           >
-            eTally
-          </motion.h1>
+            <motion.img
+              src="/icon-512.png"
+              alt="eTally"
+              style={{ width: 110, height: 110, borderRadius: 28 }}
+              animate={{ boxShadow: ['0 0 0px rgba(59,130,246,0)', '0 0 40px rgba(59,130,246,0.5)', '0 0 20px rgba(59,130,246,0.3)'] }}
+              transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse', delay: 1 }}
+            />
+          </motion.div>
+
+          {/* App name */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, type: 'spring', stiffness: 280, damping: 24 }}
+            className="relative z-10 text-center mb-2"
+          >
+            <h1 className="font-display font-extrabold text-white tracking-tight" style={{ fontSize: 42, lineHeight: 1 }}>
+              eTally
+            </h1>
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 1.0, duration: 0.5, ease: 'easeOut' }}
+              style={{ height: 2, background: 'linear-gradient(90deg, transparent, #3B82F6, transparent)', marginTop: 8, borderRadius: 2 }}
+            />
+          </motion.div>
 
           {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.4 }}
-            className="font-body"
-            style={{ color: '#3B82F6', fontSize: '13px', marginTop: '10px' }}
+            transition={{ delay: 1.1 }}
+            className="font-body text-center relative z-10"
+            style={{ color: '#3B82F6', fontSize: 13, letterSpacing: '0.05em' }}
           >
-            A time tracker for eCats
+            Time tracking for eCats
           </motion.p>
 
-          {/* Progress line */}
+          {/* Developer credit */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="relative overflow-hidden rounded-full"
-            style={{ width: '120px', height: '1px', background: 'rgba(255,255,255,0.08)', marginTop: '36px' }}
+            transition={{ delay: 1.4 }}
+            className="absolute bottom-16 text-center z-10"
           >
-            <motion.div
-              className="absolute inset-y-0 left-0 rounded-full"
-              style={{ background: '#3B82F6' }}
-              initial={{ width: '0%' }}
-              animate={{ width: '100%' }}
-              transition={{ duration: 2, delay: 0.5, ease: 'linear' }}
-            />
+            <p className="font-display font-bold text-[10px] tracking-widest" style={{ color: '#334155' }}>
+              DEVELOPED BY
+            </p>
+            <p className="font-display font-bold text-sm mt-1" style={{ color: '#475569' }}>
+              A. Ace Sirleaf
+            </p>
+            <p className="font-body text-[10px] mt-0.5" style={{ color: '#334155' }}>
+              Kola Technology Laboratory
+            </p>
+          </motion.div>
+
+          {/* Tap to enter */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0.5, 1] }}
+            transition={{ delay: 1.6, duration: 1.5, repeat: Infinity, repeatType: 'reverse' }}
+            className="absolute bottom-6 z-10"
+          >
+            <p className="font-display font-bold text-[9px] tracking-widest" style={{ color: '#334155' }}>
+              TAP TO ENTER
+            </p>
           </motion.div>
         </motion.div>
+      ) : (
+        <motion.div
+          key="exit"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 z-[100]"
+          style={{ background: '#050912' }}
+        />
       )}
     </AnimatePresence>
   )
