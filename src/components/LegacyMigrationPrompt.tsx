@@ -63,7 +63,7 @@ export default function LegacyMigrationPrompt() {
                 eTally v2.0 — Auto-Vault
               </h2>
               <p className="font-body text-sm text-slate-400 leading-relaxed mb-5">
-                You have <span className="text-white font-semibold">{count} {word}</span> in your active log. How would you like to handle them?
+                You have <span className="font-semibold" style={{ color: isDark ? '#ffffff' : '#0F172A' }}>{count} {word}</span> in your active log. How would you like to handle them?
               </p>
 
               <div className="flex flex-col gap-3">
