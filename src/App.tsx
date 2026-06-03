@@ -21,9 +21,17 @@ import { useEffect, useRef } from 'react'
 
 type Tab = 'track' | 'log' | 'cal'
 
+// Splash wrapper — prevents main app from mounting until user taps enter
 export default function App() {
-  const { user, loading, signOut } = useAuth()
   const [showSplash, setShowSplash] = useState(true)
+  if (showSplash) {
+    return <SplashScreen onEnter={() => setShowSplash(false)} />
+  }
+  return <MainApp />
+}
+
+function MainApp() {
+  const { user, loading, signOut } = useAuth()
   const [creditOpen, setCreditOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('track')
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -76,11 +84,6 @@ export default function App() {
   const handleSignOut = async () => {
     await signOut()
     clearSession()
-  }
-
-  // Splash screen — shows every app open
-  if (showSplash) {
-    return <SplashScreen onEnter={() => setShowSplash(false)} />
   }
 
   // Show loading splash while session resolves
