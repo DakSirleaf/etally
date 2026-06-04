@@ -9,8 +9,29 @@ import DayDetailSheet from './DayDetailSheet'
 import SchedulePhotoParser from './SchedulePhotoParser'
 import EditEntrySheet from './EditEntrySheet'
 
-const TYPE_PILL_BG: Record<string, string> = {
-  scheduled:    '#2563EB',
+// Full tile background colors — vivid but not overwhelming
+const TYPE_TILE_BG: Record<string, string> = {
+  scheduled:    'rgba(37,99,235,0.18)',
+  ot:           'rgba(236,6,119,0.18)',
+  callout:      'rgba(245,158,11,0.18)',
+  vacation:     'rgba(16,185,129,0.18)',
+  aspirational: 'rgba(139,92,246,0.18)',
+  off:          'rgba(148,163,184,0.12)',
+  holiday:      'rgba(239,68,68,0.18)',
+}
+
+const TYPE_TILE_BORDER: Record<string, string> = {
+  scheduled:    'rgba(37,99,235,0.35)',
+  ot:           'rgba(236,6,119,0.35)',
+  callout:      'rgba(245,158,11,0.35)',
+  vacation:     'rgba(16,185,129,0.35)',
+  aspirational: 'rgba(139,92,246,0.35)',
+  off:          'rgba(148,163,184,0.2)',
+  holiday:      'rgba(239,68,68,0.35)',
+}
+
+const TYPE_TILE_TEXT: Record<string, string> = {
+  scheduled:    '#3B82F6',
   ot:           '#EC0677',
   callout:      '#F59E0B',
   vacation:     '#10B981',
@@ -215,7 +236,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
         <div className="grid grid-cols-7 gap-0.5">
           {cells.map(({ dateStr, inMonth }, idx) => {
             if (!inMonth) {
-              return <div key={idx} className="rounded-xl" style={{ height: '56px' }} />
+              return <div key={idx} className="rounded-xl" style={{ height: '64px' }} />
             }
 
             const dayNum = parseInt(dateStr.split('-')[2])
@@ -226,17 +247,29 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
             const schedDay = scheduleMap[dateStr]
             const band = getPeriodBand(dateStr)
             const hasNote = !!(schedDay?.note)
+            const hasLoggedEntry = !!entry
+            const loggedReg = entry && entry.type !== 'CALLOUT' && entry.reason !== 'OFF' ? parseFloat(entry.reg) : 0
 
+            // Full tile background — schedule type takes priority
             const bandBg = band === 0
               ? isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)'
               : isDark ? 'rgba(37,99,235,0.06)' : 'rgba(37,99,235,0.04)'
 
-            const cellBg = isToday
-              ? isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.1)'
-              : holiday ? 'rgba(239,68,68,0.08)' : bandBg
+            let cellBg = bandBg
+            let cellBorder = 'transparent'
 
-            const loggedReg = entry && entry.type !== 'CALLOUT' && entry.reason !== 'OFF' ? parseFloat(entry.reg) : 0
-            const hasLoggedEntry = !!entry
+            if (isToday) {
+              cellBg = isDark ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.15)'
+              cellBorder = '#2563EB'
+            } else if (schedDay) {
+              cellBg = TYPE_TILE_BG[schedDay.type] ?? bandBg
+              cellBorder = TYPE_TILE_BORDER[schedDay.type] ?? 'transparent'
+            } else if (holiday) {
+              cellBg = 'rgba(239,68,68,0.1)'
+              cellBorder = 'rgba(239,68,68,0.25)'
+            }
+
+            const schedTypeColor = schedDay ? (TYPE_TILE_TEXT[schedDay.type] ?? '#94A3B8') : textSecondary
 
             return (
               <motion.button
@@ -244,24 +277,34 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                 whileTap={{ scale: 0.86 }}
                 onClick={() => setSelectedDate(dateStr)}
                 className="relative rounded-xl flex flex-col justify-between overflow-hidden"
-                style={{ height: '56px', background: cellBg, padding: '5px 5px 4px' }}
+                style={{
+                  height: '64px',
+                  background: cellBg,
+                  border: `1px solid ${cellBorder}`,
+                  padding: '5px 5px 4px',
+                }}
               >
+                {/* eCats deadline bar */}
                 {isDeadline && (
-                  <div className="absolute bottom-0 inset-x-0 h-[2.5px]" style={{ background: '#DC2626' }} />
+                  <div className="absolute bottom-0 inset-x-0 h-[3px]" style={{ background: '#DC2626' }} />
                 )}
+                {/* Has note dot */}
                 {hasNote && (
                   <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: '#8B5CF6' }} />
                 )}
 
+                {/* Day number row */}
                 <div className="flex items-start justify-between">
                   {isToday ? (
-                    <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#2563EB' }}>
-                      <span className="text-[10px] font-display font-bold text-white leading-none">{dayNum}</span>
+                    <div className="w-[20px] h-[20px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#2563EB' }}>
+                      <span className="text-[9px] font-display font-bold text-white leading-none">{dayNum}</span>
                     </div>
                   ) : (
-                    <span className="text-[12px] font-display font-bold leading-none" style={{ color: textPrimary }}>{dayNum}</span>
+                    <span className="text-[11px] font-display font-bold leading-none" style={{ color: schedDay ? schedTypeColor : textPrimary }}>{dayNum}</span>
                   )}
-                  {holiday && <span className="text-[8px] leading-tight flex-shrink-0" style={{ color: '#EF4444' }}>★</span>}
+                  {holiday && (
+                    <span className="text-[8px] leading-tight flex-shrink-0" style={{ color: '#EF4444' }}>★</span>
+                  )}
                   {isDeadline && !holiday && (
                     <span className="font-display font-bold leading-none flex-shrink-0"
                       style={{ fontSize: '6px', background: '#DC2626', color: '#FFFFFF', borderRadius: '2px', padding: '1px 2px' }}>
@@ -270,31 +313,25 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                   )}
                 </div>
 
+                {/* Bottom row — schedule type + logged entry */}
                 <div className="flex items-end gap-0.5 w-full" style={{ minWidth: 0 }}>
                   {schedDay && (
-                    <div className="flex items-center min-w-0"
-                      style={{
-                        background: TYPE_PILL_BG[schedDay.type] ?? '#94A3B8',
-                        borderRadius: '4px', padding: '2px 4px', minHeight: '16px',
-                        flex: hasLoggedEntry ? '1 1 0' : '1 1 100%',
-                        overflow: 'hidden', flexShrink: 1,
-                      }}>
-                      <span className="font-display font-bold truncate block w-full"
-                        style={{ fontSize: '10px', color: '#FFFFFF', lineHeight: 1.2 }}>
+                    <div className="flex items-center min-w-0 flex-1">
+                      <span className="font-display font-bold truncate"
+                        style={{ fontSize: '9px', color: schedTypeColor, lineHeight: 1.2 }}>
                         {TYPE_ABBREV[schedDay.type] ?? schedDay.type}
                       </span>
                     </div>
                   )}
                   {hasLoggedEntry && (
-                    <div className="flex items-center flex-shrink-0"
-                      style={{
-                        background: '#059669', borderRadius: '4px', padding: '2px 4px', minHeight: '16px',
-                        flex: schedDay ? '0 0 auto' : '1 1 100%',
-                      }}
-                      onClick={(e) => { e.stopPropagation(); setEditingEntry(entry!) }}>
+                    <div
+                      className="flex items-center flex-shrink-0 rounded"
+                      style={{ background: 'rgba(5,150,105,0.2)', border: '1px solid rgba(5,150,105,0.35)', padding: '1px 3px' }}
+                      onClick={(e) => { e.stopPropagation(); setEditingEntry(entry!) }}
+                    >
                       <span className="font-display font-bold whitespace-nowrap"
-                        style={{ fontSize: '10px', color: '#FFFFFF', lineHeight: 1.2 }}>
-                        {loggedReg > 0 ? `✓ ${loggedReg}h` : entry!.type === 'CALLOUT' ? '✓ CO' : '✓ OFF'}
+                        style={{ fontSize: '9px', color: '#10B981', lineHeight: 1.2 }}>
+                        {loggedReg > 0 ? `✓${loggedReg}h` : entry!.type === 'CALLOUT' ? '✓CO' : '✓OFF'}
                       </span>
                     </div>
                   )}
@@ -308,17 +345,17 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
         <div className="mt-3 overflow-x-auto">
           <div className="flex items-center gap-3 pb-0.5" style={{ minWidth: 'max-content', paddingLeft: '2px' }}>
             {([
-              { color: '#2563EB', label: 'Scheduled', type: 'sq' },
-              { color: '#EC0677', label: 'OT', type: 'sq' },
-              { color: '#F59E0B', label: 'Callout', type: 'sq' },
-              { color: '#10B981', label: 'Vacation', type: 'sq' },
-              { color: '#8B5CF6', label: 'Req Off', type: 'sq' },
-              { color: '#94A3B8', label: 'Day Off', type: 'sq' },
-              { color: '#EF4444', label: 'Holiday', type: 'star' },
-              { color: '#059669', label: 'Logged', type: 'check' },
-              { color: '#DC2626', label: 'ECATS Due', type: 'bar' },
-              { color: '#8B5CF6', label: 'Has Note', type: 'dot' },
-            ] as { color: string; label: string; type: string }[]).map(({ color, label, type }) => (
+              { color: '#3B82F6', label: 'Scheduled', type: 'sq', bg: 'rgba(37,99,235,0.18)' },
+              { color: '#EC0677', label: 'OT', type: 'sq', bg: 'rgba(236,6,119,0.18)' },
+              { color: '#F59E0B', label: 'Callout', type: 'sq', bg: 'rgba(245,158,11,0.18)' },
+              { color: '#10B981', label: 'Vacation', type: 'sq', bg: 'rgba(16,185,129,0.18)' },
+              { color: '#8B5CF6', label: 'Req Off', type: 'sq', bg: 'rgba(139,92,246,0.18)' },
+              { color: '#94A3B8', label: 'Day Off', type: 'sq', bg: 'rgba(148,163,184,0.12)' },
+              { color: '#EF4444', label: 'Holiday', type: 'star', bg: '' },
+              { color: '#10B981', label: 'Logged', type: 'check', bg: '' },
+              { color: '#DC2626', label: 'ECATS Due', type: 'bar', bg: '' },
+              { color: '#8B5CF6', label: 'Has Note', type: 'dot', bg: '' },
+            ] as { color: string; label: string; type: string; bg: string }[]).map(({ color, label, type, bg }) => (
               <div key={label} className="flex items-center gap-1 flex-shrink-0">
                 {type === 'star' ? (
                   <span style={{ color, fontSize: '9px' }}>★</span>
@@ -331,7 +368,7 @@ export default function CalendarTab({ onNavigateToTrack }: CalendarTabProps) {
                 ) : type === 'dot' ? (
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }} />
                 ) : (
-                  <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: color }} />
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: bg, border: `1px solid ${color}` }} />
                 )}
                 <span className="text-[9px] font-body" style={{ color: textSecondary }}>{label}</span>
               </div>
