@@ -18,17 +18,19 @@ function formatDate(dateStr: string): string {
 
 export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const { isDark, surface, surfaceBorder, textSecondary } = useTheme()
+  const { isDark, surface, surfaceBorder, textSecondary, labelColor } = useTheme()
 
   const isOff = entry.reason === 'OFF'
   const isCallout = entry.type === 'CALLOUT'
   const hasOT = parseFloat(entry.ot) > 0
   const isOTShift = entry.type === 'OT'
 
+  // Color scheme per entry type
   let accentColor = '#2563EB'
-  if (isCallout) accentColor = '#D97706'
-  else if (isOTShift || hasOT) accentColor = '#DB2777'
-  else if (isOff) accentColor = '#CBD5E1'
+  let accentBg = isDark ? 'rgba(37,99,235,0.08)' : 'rgba(37,99,235,0.04)'
+  if (isCallout) { accentColor = '#D97706'; accentBg = isDark ? 'rgba(217,119,6,0.08)' : 'rgba(217,119,6,0.04)' }
+  else if (isOTShift || hasOT) { accentColor = '#DB2777'; accentBg = isDark ? 'rgba(219,39,119,0.08)' : 'rgba(219,39,119,0.04)' }
+  else if (isOff) { accentColor = '#94A3B8'; accentBg = 'transparent' }
 
   const detail = isCallout
     ? `Callout · ${entry.calloutPayType || entry.reason}`
@@ -45,44 +47,42 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
-      className="relative rounded-3xl overflow-hidden mb-3"
+      className="relative rounded-2xl overflow-hidden mb-2.5"
       style={{
         background: surface,
-        borderTop: `2px solid ${accentColor}`,
-        borderLeft: surfaceBorder,
-        borderRight: surfaceBorder,
-        borderBottom: surfaceBorder,
-        boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(15,23,42,0.06)',
+        border: surfaceBorder,
+        boxShadow: isDark ? '0 2px 12px rgba(0,0,0,0.2)' : '0 1px 8px rgba(15,23,42,0.06)',
       }}
     >
-      <div className="pl-4 pr-4 py-4">
-        <div className="flex items-start justify-between mb-2">
+      <div className="px-4 py-3.5">
+        {/* Top row — date + badges + actions */}
+        <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: isDark ? '#475569' : '#94A3B8' }}>
             {formatDate(entry.date)}
           </span>
 
           <div className="flex items-center gap-1.5">
             {isOff ? (
-              <span className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
+              <span className="text-[9px] font-display font-bold tracking-wider px-2 py-1 rounded-lg"
                 style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9', color: isDark ? '#334155' : '#94A3B8' }}>
                 DAY OFF
               </span>
             ) : isCallout ? (
-              <span className="text-[9px] font-display font-bold tracking-wider px-2.5 py-1 rounded-xl"
-                style={{ background: isDark ? 'rgba(217,119,6,0.15)' : '#FEF3C7', color: '#D97706' }}>
+              <span className="text-[9px] font-display font-bold tracking-wider px-2 py-1 rounded-lg"
+                style={{ background: isDark ? 'rgba(217,119,6,0.12)' : '#FEF3C7', color: '#D97706' }}>
                 CALLOUT · {entry.calloutPayType}
               </span>
             ) : (
-              <div className="flex gap-1.5 items-center">
+              <div className="flex gap-1 items-center">
                 {parseFloat(entry.reg) > 0 && (
-                  <span className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
-                    style={{ background: isDark ? 'rgba(37,99,235,0.15)' : '#EFF6FF', color: '#3B82F6' }}>
+                  <span className="text-[10px] font-display font-bold px-2 py-1 rounded-lg"
+                    style={{ background: isDark ? 'rgba(37,99,235,0.12)' : '#EFF6FF', color: '#3B82F6' }}>
                     R {entry.reg}
                   </span>
                 )}
                 {hasOT && (
-                  <span className="text-[10px] font-display font-bold px-2.5 py-1 rounded-xl"
-                    style={{ background: isDark ? 'rgba(219,39,119,0.15)' : '#FDF2F8', color: '#DB2777' }}>
+                  <span className="text-[10px] font-display font-bold px-2 py-1 rounded-lg"
+                    style={{ background: isDark ? 'rgba(219,39,119,0.12)' : '#FDF2F8', color: '#DB2777' }}>
                     OT {entry.ot}
                   </span>
                 )}
@@ -92,11 +92,11 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => { setConfirmDelete(false); onEdit(entry) }}
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: isDark ? 'rgba(148,163,184,0.12)' : '#F1F5F9' }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: isDark ? 'rgba(148,163,184,0.1)' : '#F8FAFC' }}
               aria-label="Edit entry"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -105,21 +105,23 @@ export default function EntryCard({ entry, onDelete, onEdit }: EntryCardProps) {
             <motion.button
               whileTap={{ scale: 0.85 }}
               onClick={() => setConfirmDelete(!confirmDelete)}
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: confirmDelete ? 'rgba(239,68,68,0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC') }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: confirmDelete ? 'rgba(239,68,68,0.12)' : (isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC') }}
               aria-label="Delete entry"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                 <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke={confirmDelete ? '#F43F5E' : (isDark ? '#475569' : '#94A3B8')} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </motion.button>
           </div>
         </div>
 
+        {/* Detail line */}
         {!isOff && (
           <p className="text-[11px] font-body leading-relaxed" style={{ color: textSecondary }}>{detail}</p>
         )}
 
+        {/* Delete confirmation */}
         <AnimatePresence>
           {confirmDelete && (
             <motion.div
