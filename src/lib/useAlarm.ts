@@ -86,6 +86,26 @@ export function useAlarm() {
   const fireIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const snoozeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Warm up AudioContext on first user interaction so it's ready when alarm fires
+  useEffect(() => {
+    const warmUp = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext()
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
+      }
+      window.removeEventListener('touchstart', warmUp)
+      window.removeEventListener('mousedown', warmUp)
+    }
+    window.addEventListener('touchstart', warmUp, { passive: true })
+    window.addEventListener('mousedown', warmUp, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', warmUp)
+      window.removeEventListener('mousedown', warmUp)
+    }
+  }, [])
+
   // Alarm checker — runs always at app level
   useEffect(() => {
     const check = setInterval(() => {
@@ -112,11 +132,19 @@ export function useAlarm() {
       if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
       return
     }
-    const trigger = () => {
-      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-        audioCtxRef.current = new AudioContext()
+    const trigger = async () => {
+      try {
+        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+          audioCtxRef.current = new AudioContext()
+        }
+        // Resume if suspended — required after page load without interaction
+        if (audioCtxRef.current.state === 'suspended') {
+          await audioCtxRef.current.resume()
+        }
+        playTone(firing.tone, audioCtxRef.current)
+      } catch (e) {
+        console.warn('Audio play failed:', e)
       }
-      playTone(firing.tone, audioCtxRef.current)
       if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300])
     }
     trigger()
