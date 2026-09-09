@@ -1,56 +1,103 @@
+/* ── 1. Google Fonts (@import MUST be at the very top) ──────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+/* ── 2. Tailwind Directives ────────────────────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Native app feel ─────────────────────────────────── */
-html, body {
-  overscroll-behavior: none;
-  overflow: hidden;
-  height: 100%;
-  width: 100%;
-  position: fixed;
+/* ── 3. Base Mobile Shell & Native PWA Feel ────────────────────────── */
+@layer base {
+  html, body {
+    overscroll-behavior: none;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    touch-action: manipulation;
+    background-color: #050912;
+    color: #F8FAFC;
+  }
+
+  /* Prevent awkward text selection on buttons & interactive cards */
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Re-enable text selection for form fields */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
-* {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-input, textarea, [contenteditable] {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* ── Typography ──────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
-
+/* ── 4. Custom Typography Utilities ───────────────────────────────── */
 .font-display {
   font-family: 'DM Serif Display', serif;
 }
 
-.font-body {
-  font-family: 'DM Sans', sans-serif;
+.font-sans-ui {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* ── Scrollable containers ───────────────────────────── */
+.font-body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Tabular numbers keep timer digits stable while counting */
+.numeric-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ── 5. Layout & Hardware Accelerated Containers ──────────────────── */
+#root {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .overflow-y-auto {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-/* ── Hide scrollbars ─────────────────────────────────── */
-::-webkit-scrollbar { display: none; }
-* { scrollbar-width: none; }
-
-/* ── Safe area ───────────────────────────────────────── */
-#root {
-  height: 100dvh;
-  overflow: hidden;
+/* Hide scrollbars cleanly across webkit and gecko */
+::-webkit-scrollbar { 
+  display: none; 
+}
+* { 
+  scrollbar-width: none; 
 }
 
-/* ── Welcome modal blobs ─────────────────────────────── */
+/* ── 6. Mobile Safe Areas ─────────────────────────────────────────── */
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ── 7. Glassmorphism & Card Utility Classes ─────────────────────── */
+.bento-card {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.bento-card-active {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+}
+
+/* ── 8. Keyframe Animations ───────────────────────────────────────── */
 @keyframes blobFloat1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(18px, -24px) scale(1.06); }

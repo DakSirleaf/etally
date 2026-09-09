@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TrackTab from './components/TrackTab'
 import LogTab from './components/LogTab'
@@ -17,13 +17,10 @@ import { useAutoArchive } from './lib/useAutoArchive'
 import { useSync } from './lib/useSync'
 import { useAuth } from './lib/useAuth'
 import { getCurrentPayPeriod, formatPeriodRange } from './lib/payPeriod'
-import { useEffect, useRef } from 'react'
 import { useAlarm } from './lib/useAlarm'
-import type { Alarm } from './lib/useAlarm'
 
 type Tab = 'track' | 'log' | 'cal'
 
-// Splash wrapper — prevents main app from mounting until user taps enter
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
   if (showSplash) {
@@ -35,14 +32,18 @@ export default function App() {
 function MainApp() {
   const { user, loading, signOut } = useAuth()
   const { alarms, setAlarms, firing, snoozed, previewTone, dismissFiring, snoozeFiring, cancelSnooze } = useAlarm()
-  const [creditOpen, setCreditOpen] = useState(false)
+  
   const [tab, setTab] = useState<Tab>('track')
-  const [aboutOpen, setAboutOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [vaultOpen, setVaultOpen] = useState(false)
   const [alarmOpen, setAlarmOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const [creditOpen, setCreditOpen] = useState(false)
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false)
+  
   const [locked, setLocked] = useState(false)
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
   const role = useStore((s) => s.role)
   const entries = useStore((s: any) => s.entries)
   const vault = useStore((s) => s.vault)
@@ -52,7 +53,6 @@ function MainApp() {
   const lockTimeout = useStore((s: any) => s.lockTimeout) as number
   const isDark = theme === 'dark'
 
-  // Inactivity lock
   useEffect(() => {
     if (!user || lockTimeout === 0) {
       if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
@@ -75,75 +75,49 @@ function MainApp() {
   useAutoArchive()
   useSync(user)
 
-  const handleTabChange = (newTab: Tab) => setTab(newTab)
-  const goHome = () => handleTabChange('track')
-
+  const goHome = () => setTab('track')
   const currentPeriod = getCurrentPayPeriod()
-
-  const mainBg = isDark
-    ? 'linear-gradient(160deg, #050912 0%, #0A1128 50%, #080D1E 100%)'
-    : '#F1F5F9'
 
   const handleSignOut = async () => {
     await signOut()
     clearSession()
   }
 
-  // Show loading splash while session resolves
   if (loading) {
     return (
-      <div
-        className="flex items-center justify-center"
-        style={{ height: '100dvh', background: '#050912' }}
-      >
+      <div className="flex items-center justify-center h-[100dvh] bg-[#050912]">
         <div className="flex flex-col items-center gap-3">
           <h1 className="font-display font-extrabold text-2xl text-white tracking-tight">eTally</h1>
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              border: '2px solid rgba(255,255,255,0.1)',
-              borderTopColor: '#3B82F6',
-              borderRadius: '50%',
-              animation: 'spin 0.7s linear infinite',
-            }}
-          />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div className="w-6 h-6 border-2 border-white/10 border-t-blue-500 rounded-full animate-spin" />
         </div>
       </div>
     )
   }
 
-  // Gate entire app behind auth
-  if (!user) {
-    return <AuthScreen />
-  }
+  if (!user) return <AuthScreen />
 
-  // Inactivity lock screen
   if (locked) {
     return (
-      <div className="flex flex-col items-center justify-center" style={{ height: '100dvh', background: '#050912' }}>
-        <div className="flex flex-col items-center gap-4 px-6 w-full max-w-sm">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2" style={{ background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.2)' }}>
+      <div className="flex flex-col items-center justify-center h-[100dvh] bg-[#050912] px-6">
+        <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-blue-500/10 border border-blue-500/20">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="11" width="18" height="11" rx="2" stroke="#3B82F6" strokeWidth="1.8" />
               <path d="M7 11V7a5 5 0 0110 0v4" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </div>
           <h1 className="font-display font-extrabold text-2xl text-white">eTally</h1>
-          <p className="text-sm font-body text-center" style={{ color: '#64748B' }}>Locked due to inactivity</p>
+          <p className="text-sm text-slate-400">Locked due to inactivity</p>
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => {
               setLocked(false)
-              // Reset the inactivity timer on unlock
               if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
               if (lockTimeout > 0) {
                 lockTimerRef.current = setTimeout(() => setLocked(true), lockTimeout * 60 * 1000)
               }
             }}
-            className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white mt-4"
-            style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
+            className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white mt-4 bg-gradient-to-r from-blue-700 to-blue-500 shadow-lg shadow-blue-500/30"
           >
             UNLOCK
           </motion.button>
@@ -153,193 +127,157 @@ function MainApp() {
   }
 
   return (
-    <div
-      className="flex flex-col"
-      style={{ height: '100dvh', overflow: 'hidden' }}
-      data-theme={theme}
-    >
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#050912]" data-theme={theme}>
       <AnimatePresence>{!role && <RoleSetup />}</AnimatePresence>
       <LegacyMigrationPrompt />
 
-      {/* Header */}
-      <header
-        className="flex-shrink-0 px-5 pb-4"
-        style={{
-          paddingTop: 'max(1.1rem, env(safe-area-inset-top, 1.1rem))',
-          background: isDark ? '#050912' : '#0F172A',
-          borderBottom: '2px solid #2563EB',
-        }}
-      >
+      {/* Streamlined Header */}
+      <header className="flex-shrink-0 px-5 pt-4 pb-3 bg-[#0F172A] border-b border-slate-800/80">
         <div className="flex items-center justify-between">
-
-          <motion.button
-            onClick={goHome}
-            whileTap={{ scale: 0.96 }}
-            initial={{ opacity: 0, y: -18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.05 }}
-            className="text-left"
-          >
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-2xl text-white tracking-tight leading-none">
-                eTally
-              </h1>
-              <span className="text-[9px] font-display font-bold tracking-widest text-slate-500 bg-slate-800 px-2 py-0.5 rounded-lg">
-                v2.0
-              </span>
+          <button onClick={goHome} className="text-left flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-display font-black text-blue-400 text-lg">
+              e
             </div>
-            <p
-              className="font-body text-[11px] mt-0.5 tracking-wide"
-              style={{ color: isDark ? '#3B82F6' : '#64748B' }}
-            >
-              {formatPeriodRange(currentPeriod)}
-            </p>
-          </motion.button>
-
-          <div className="flex items-center gap-1.5">
-            {/* Theme toggle */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={toggleTheme}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.22, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.35)' }}
-              aria-label="Toggle theme"
-            >
-              {isDark ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="4" stroke="#818CF8" strokeWidth="1.8" />
-                  <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#818CF8" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="#818CF8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </motion.button>
-
-            {/* Vault button */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => setVaultOpen(true)}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.24, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center relative"
-              style={{ background: 'rgba(139,92,246,0.25)', border: '1px solid rgba(139,92,246,0.35)' }}
-              aria-label="Vault"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M3 7v13a1 1 0 001 1h16a1 1 0 001-1V7M3 7l2-4h14l2 4M3 7h18M10 11h4" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {vault.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-display font-bold flex items-center justify-center text-white" style={{ background: '#8B5CF6' }}>
-                  {vault.length}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display font-extrabold text-xl text-white tracking-tight leading-none">eTally</h1>
+                <span className="text-[9px] font-display font-bold tracking-widest text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                  v2.0
                 </span>
-              )}
-            </motion.button>
+              </div>
+              <p className="font-body text-[11px] text-blue-400 mt-0.5">{formatPeriodRange(currentPeriod)}</p>
+            </div>
+          </button>
 
-            {/* Export */}
+          <div className="flex items-center gap-2">
             <motion.button
-              whileTap={{ scale: 0.88 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => setReportOpen(true)}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.26, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(16,185,129,0.2)', border: '1px solid rgba(16,185,129,0.3)' }}
-              aria-label="Export report"
+              className="px-3 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-sans-ui font-bold flex items-center gap-1.5"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M7 10l5 5 5-5M12 15V3" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
+              EXPORT
             </motion.button>
 
-            {/* Help */}
             <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => setAboutOpen(true)}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.28, type: 'spring', stiffness: 320, damping: 28 }}
-              className="h-10 px-3 rounded-2xl flex items-center justify-center gap-1.5"
-              style={{ background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)' }}
-              aria-label="Help"
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setMenuDrawerOpen(true)}
+              className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-200"
+              aria-label="Settings and Tools"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="#60A5FA" strokeWidth="1.8" />
-                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round" />
-                <circle cx="12" cy="17" r="0.5" fill="#60A5FA" stroke="#60A5FA" strokeWidth="1.5" />
-              </svg>
-              <span className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#60A5FA' }}>HELP</span>
-            </motion.button>
-
-            {/* About the Developer */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => setCreditOpen(true)}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.29, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.3)' }}
-              aria-label="About the developer"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="8" r="4" stroke="#FBBF24" strokeWidth="1.8" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#FBBF24" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </motion.button>
-
-            {/* Alarm */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => setAlarmOpen(true)}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.30, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(236,72,153,0.2)', border: '1px solid rgba(236,72,153,0.3)' }}
-              aria-label="Alarm clock"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="13" r="7" stroke="#F472B6" strokeWidth="1.8" />
-                <path d="M12 10v3l2 2" stroke="#F472B6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 3L2 6M22 6l-3-3" stroke="#F472B6" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </motion.button>
-
-            {/* Sign Out */}
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={handleSignOut}
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.31, type: 'spring', stiffness: 320, damping: 28 }}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)' }}
-              aria-label="Sign out"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M16 17l5-5-5-5" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M21 12H9" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </motion.button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden relative" style={{ background: mainBg }}>
+      <main className="flex-1 overflow-hidden relative">
         <div className="absolute inset-0 overflow-y-auto">
-          {tab === 'track' ? <TrackTab /> : tab === 'log' ? <LogTab onNavigateToTrack={goHome} /> : <CalendarTab onNavigateToTrack={goHome} />}
+          {tab === 'track' ? (
+            <TrackTab />
+          ) : tab === 'log' ? (
+            <LogTab onNavigateToTrack={goHome} />
+          ) : (
+            <CalendarTab onNavigateToTrack={goHome} />
+          )}
         </div>
       </main>
 
-      <BottomNav active={tab} setActive={(t: any) => handleTabChange(t)} />
+      <BottomNav active={tab} setActive={(t: Tab) => setTab(t)} />
+
+      {/* Utilities Drawer */}
+      <AnimatePresence>
+        {menuDrawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+              onClick={() => setMenuDrawerOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-[#0F172A] border-t border-slate-800 p-6 pb-8"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 rounded-full bg-slate-700" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => { setMenuDrawerOpen(false); setVaultOpen(true) }}
+                  className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 text-left"
+                >
+                  <span className="text-xl">📦</span>
+                  <div>
+                    <p className="text-xs font-sans-ui font-bold text-white">Vault</p>
+                    <p className="text-[10px] text-slate-400">{vault.length} items saved</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { setMenuDrawerOpen(false); setAlarmOpen(true) }}
+                  className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 text-left"
+                >
+                  <span className="text-xl">⏰</span>
+                  <div>
+                    <p className="text-xs font-sans-ui font-bold text-white">Shift Alarms</p>
+                    <p className="text-[10px] text-slate-400">{alarms.length} active</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={toggleTheme}
+                  className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 text-left"
+                >
+                  <span className="text-xl">{isDark ? '🌙' : '☀️'}</span>
+                  <div>
+                    <p className="text-xs font-sans-ui font-bold text-white">Theme</p>
+                    <p className="text-[10px] text-slate-400">{isDark ? 'Dark Mode' : 'Light Mode'}</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { setMenuDrawerOpen(false); setAboutOpen(true) }}
+                  className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-3 text-left"
+                >
+                  <span className="text-xl">❓</span>
+                  <div>
+                    <p className="text-xs font-sans-ui font-bold text-white">Help & Guide</p>
+                    <p className="text-[10px] text-slate-400">PWA usage tips</p>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setMenuDrawerOpen(false); setCreditOpen(true) }}
+                  className="flex-1 py-3.5 rounded-2xl bg-slate-800 border border-slate-700/60 text-xs font-sans-ui font-bold text-slate-300"
+                >
+                  About Developer
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="flex-1 py-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs font-sans-ui font-bold text-rose-400"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AlarmModal
         isOpen={alarmOpen}
@@ -351,116 +289,15 @@ function MainApp() {
         previewTone={previewTone}
       />
 
-      {/* Alarm firing overlay — always mounted at app level */}
-      <AnimatePresence>
-        {firing && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center px-6"
-            style={{ background: 'rgba(5,9,18,0.85)', backdropFilter: 'blur(12px)' }}
-          >
-            <div className="rounded-3xl px-6 py-8 text-center w-full max-w-sm"
-              style={{ background: '#0F172A', border: '1px solid rgba(37,99,235,0.3)' }}>
-              <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="text-5xl mb-4">
-                ⏰
-              </motion.div>
-              <p className="font-display font-extrabold text-3xl text-white tabular-nums mb-1">
-                {(() => { const h = firing.hour % 12 || 12; const ap = firing.hour < 12 ? 'AM' : 'PM'; return `${h}:${String(firing.minute).padStart(2,'0')} ${ap}` })()}
-              </p>
-              <p className="font-display font-bold text-base text-blue-400 mb-6">{firing.label}</p>
-              <div className="flex gap-3">
-                <motion.button whileTap={{ scale: 0.95 }} onClick={snoozeFiring}
-                  className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  SNOOZE 5 MIN
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.95 }} onClick={dismissFiring}
-                  className="flex-1 py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white"
-                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)', boxShadow: '0 8px 24px rgba(37,99,235,0.4)' }}>
-                  DISMISS
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
-
-      {/* Developer Credit Modal */}
-      <AnimatePresence>
-        {creditOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              style={{ background: 'rgba(5,9,18,0.7)', backdropFilter: 'blur(8px)' }}
-              onClick={() => setCreditOpen(false)}
-            />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
-              style={{
-                background: 'linear-gradient(160deg, #050912 0%, #0A1128 60%, #080D1E 100%)',
-                paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 rounded-full bg-slate-700" />
-              </div>
-              <div className="px-6 pb-2 flex flex-col items-center text-center">
-                {/* Developer avatar placeholder */}
-                <motion.div
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4 mt-2"
-                  style={{ background: 'linear-gradient(135deg, #1D4ED8, #7C3AED)', border: '3px solid rgba(255,255,255,0.08)' }}
-                >
-                  <span className="font-display font-extrabold text-2xl text-white">AS</span>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-                  <p className="text-[9px] font-display font-bold tracking-widest text-slate-500 mb-1">ABOUT THE DEVELOPER</p>
-                  <p className="font-display font-bold text-2xl text-white">A. Ace Sirleaf</p>
-                  <p className="text-[12px] text-blue-400 font-body mt-1">Founder · Kola Technology Laboratory</p>
-                </motion.div>
-
-                <div className="h-px w-full bg-slate-800 my-4" />
-
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="w-full">
-                  <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-                    {['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP'].map(d => (
-                      <span key={d} className="text-[9px] font-display font-bold tracking-wide px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8' }}>{d}</span>
-                    ))}
-                  </div>
-                  <p className="text-[11px] font-body leading-relaxed mb-1" style={{ color: '#64748B' }}>
-                    Psychiatric nursing professional and software developer building clinical tools that bridge direct patient care and modern technology.
-                  </p>
-                  <p className="text-[10px] font-display font-bold tracking-widest text-slate-600 italic mt-3 mb-5">"Dare to build it yourself."</p>
-                </motion.div>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setCreditOpen(false)}
-                  className="w-full py-4 rounded-2xl font-display font-bold text-xs tracking-widest text-white"
-                  style={{ background: '#0a0a14', border: '1px solid rgba(255,255,255,0.06)' }}
-                >
-                  CLOSE
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
       <ReportModal
         isOpen={reportOpen}
         onClose={() => { setReportOpen(false); goHome() }}
         entries={entries}
         role={role}
       />
+
       <VaultSheet isOpen={vaultOpen} onClose={() => setVaultOpen(false)} />
+      <AboutSheet isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   )
 }

@@ -1,493 +1,158 @@
-import EcatsBanner from './EcatsBanner'
-import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { calculateHours } from '../lib/calculations'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useStore } from '../store/useStore'
-import { useTheme } from '../lib/useTheme'
-import type { ShiftType, CalloutPayType, StaffRole } from '../types'
-import TimePickerSheet from './TimePickerSheet'
-import DatePickerSheet from './DatePickerSheet'
-import { to12hr } from '../lib/timeFormat'
-
-function todayStr() {
-  return new Date().toISOString().split('T')[0]
-}
-
-function getWeekStart(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  const day = d.getDay()
-  d.setDate(d.getDate() - day)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function sameWeek(a: string, b: string): boolean {
-  return getWeekStart(a) === getWeekStart(b)
-}
-
-function formatDateDisplay(dateStr: string): { weekday: string; date: string } {
-  const d = new Date(dateStr + 'T00:00:00')
-  return {
-    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  }
-}
-
-const SHIFT_REASONS = [
-  'Standard Shift',
-  'Late Relief',
-  'Patient Care',
-  'Incident Report',
-  'CPR Training',
-  'Nursing Ed',
-  'Mandatory - State of Emergency',
-]
-
-const CALLOUT_PAY_TYPES: Record<StaffRole, CalloutPayType[]> = {
-  RN:      ['Sick Time', 'AL Day'],
-  LPN:     ['Sick Time', 'Vacation Time', 'AL Day'],
-  HST:     ['Sick Time', 'Vacation Time', 'AL Day'],
-  HSA:     ['Sick Time', 'Vacation Time', 'AL Day'],
-  POOL_RN: [],
-}
-
-const SHIFT_TYPES: ShiftType[] = ['REG', 'OT', 'CALLOUT']
-const SHIFT_LABELS: Record<ShiftType, string> = {
-  REG: 'REGULAR',
-  OT: 'OVERTIME',
-  CALLOUT: 'CALLOUT',
-}
-const SHIFT_COLORS: Record<ShiftType, string> = {
-  REG: '#2563EB',
-  OT: '#DB2777',
-  CALLOUT: '#D97706',
-}
-
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-}
-
-const tileVariants = {
-  hidden: { opacity: 0, y: 12, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 320, damping: 28 } },
-}
-
-function getDefaultTimes(pref: string | null) {
-  if (pref === 'evening') return { start: '14:45', end: '23:15' }
-  if (pref === 'day') return { start: '06:45', end: '15:15' }
-  return { start: '22:45', end: '07:15' }
-}
 
 export default function TrackTab() {
-  const addEntry = useStore((s: any) => s.addEntry)
-  const role = useStore((s: any) => s.role) as StaffRole | null
-  const entries = useStore((s: any) => s.entries)
-  const schedule = useStore((s: any) => s.schedule) ?? []
-  const pendingTrackDate = useStore((s: any) => s.pendingTrackDate) as string | null
-  const setPendingTrackDate = useStore((s: any) => s.setPendingTrackDate)
-  const shiftPreference = useStore((s: any) => s.shiftPreference)
-  const { isDark, surface, surfaceBorder, textPrimary, textSecondary, labelColor, toggleBg, selectColor } = useTheme()
-
-  const defaults = getDefaultTimes(shiftPreference)
-  const isPoolRN = role === 'POOL_RN'
-
-  const [shiftType, setShiftType] = useState<ShiftType>('REG')
-  const [date, setDate] = useState(todayStr())
-  const [start, setStart] = useState(defaults.start)
-  const [end, setEnd] = useState(defaults.end)
-  const [reason, setReason] = useState('Standard Shift')
-  const [calloutPayType, setCalloutPayType] = useState<CalloutPayType>('Sick Time')
-  const [calc, setCalc] = useState({ reg: '8.00', ot: '0.00', normalEnd: '--' })
-  const [saved, setSaved] = useState(false)
-  const [activePicker, setActivePicker] = useState<'start' | 'end' | null>(null)
-  const [datePickerOpen, setDatePickerOpen] = useState(false)
-  const [conflictDismissed, setConflictDismissed] = useState(false)
-
-  const currentYear = new Date().getFullYear()
-  const alUsedThisYear = entries.filter(
-    (e: any) => e.calloutPayType === 'AL Day' && e.date.startsWith(String(currentYear))
-  ).length
-  const alRemaining = Math.max(0, 3 - alUsedThisYear)
-  const availablePayTypes = role ? CALLOUT_PAY_TYPES[role] : ['Sick Time', 'AL Day']
-
-  // Weekly hours for OT alert
-  const weeklyHours = entries
-    .filter((e: any) => sameWeek(e.date, date) && e.type !== 'CALLOUT' && e.reason !== 'OFF')
-    .reduce((sum: number, e: any) => sum + parseFloat(e.reg) + parseFloat(e.ot), 0)
-
-  const thisEntryHours = shiftType !== 'CALLOUT' ? parseFloat(calc.reg) + parseFloat(calc.ot) : 0
-  const projectedWeekly = weeklyHours + thisEntryHours
-  const showOtWarning = isPoolRN && projectedWeekly > 35
-  const isOtOverLimit = isPoolRN && projectedWeekly >= 40
-
-  // Schedule conflict detection
-  const scheduleDay = schedule.find((s: any) => s.date === date)
-  const existingEntry = entries.find((e: any) => e.date === date)
-  const hasConflict = !conflictDismissed && scheduleDay && shiftType !== 'CALLOUT' &&
-    scheduleDay.type !== 'scheduled' && scheduleDay.type !== shiftType.toLowerCase() &&
-    !existingEntry
-
-  const recompute = useCallback(() => {
-    if (shiftType !== 'CALLOUT') setCalc(calculateHours(start, end, shiftType))
-  }, [start, end, shiftType])
-
-  useEffect(() => { recompute() }, [recompute])
+  const { entries, activeShift, startShift, stopShift } = useStore((s: any) => s)
+  const [shiftType, setShiftType] = useState<'REG' | 'OT'>('REG')
+  const [note, setNote] = useState('')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
-    if (pendingTrackDate) {
-      setDate(pendingTrackDate)
-      setPendingTrackDate(null)
-    }
-  }, [pendingTrackDate, setPendingTrackDate])
-
-  useEffect(() => {
-    if (calloutPayType === 'AL Day' && alRemaining === 0) setCalloutPayType('Sick Time')
-  }, [calloutPayType, alRemaining])
-
-  // Reset conflict dismissed when date or shiftType changes
-  useEffect(() => { setConflictDismissed(false) }, [date, shiftType])
-
-  const handleSave = () => {
-    if (shiftType === 'CALLOUT') {
-      addEntry({
-        id: Date.now(), date,
-        startTime: '--', endTime: '--',
-        reg: '0.00', ot: '0.00',
-        reason: isPoolRN ? 'No Coverage' : calloutPayType,
-        type: 'CALLOUT', normalEnd: '--',
-        calloutPayType: isPoolRN ? undefined : calloutPayType,
-      })
+    let interval: any = null
+    if (activeShift) {
+      interval = setInterval(() => {
+        const now = Math.floor(Date.now() / 1000)
+        const start = Math.floor(new Date(activeShift.startTime).getTime() / 1000)
+        setElapsedSeconds(Math.max(0, now - start))
+      }, 1000)
     } else {
-      const result = calculateHours(start, end, shiftType)
-      addEntry({
-        id: Date.now(), date,
-        startTime: start, endTime: end,
-        reg: result.reg, ot: result.ot,
-        reason, type: shiftType,
-        normalEnd: result.normalEnd,
-      })
+      setElapsedSeconds(0)
     }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    return () => clearInterval(interval)
+  }, [activeShift])
+
+  const formatTimer = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600)
+    const mins = Math.floor((totalSecs % 3600) / 60)
+    const secs = totalSecs % 60
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
 
-  const handleDayOff = () => {
-    addEntry({
-      id: Date.now(), date,
-      startTime: '--', endTime: '--',
-      reg: '0.00', ot: '0.00',
-      reason: 'OFF', type: 'REG', normalEnd: '--',
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const typeIndex = SHIFT_TYPES.indexOf(shiftType)
-  const accentColor = SHIFT_COLORS[shiftType]
-  const dateDisplay = formatDateDisplay(date)
-  const hasOT = shiftType !== 'CALLOUT' && parseFloat(calc.ot) > 0
-  const pillLeft = typeIndex === 0 ? '4px' : `calc(${typeIndex * 33.333}% + 2px)`
-  const pillWidth = typeIndex === 0 || typeIndex === 2 ? 'calc(33.333% - 6px)' : 'calc(33.333% - 4px)'
+  const regHours = entries
+    ? entries.filter((e: any) => e.type === 'REG').reduce((sum: number, e: any) => sum + (e.hours || 0), 0)
+    : 0
+  const otHours = entries
+    ? entries.filter((e: any) => e.type === 'OT').reduce((sum: number, e: any) => sum + (e.hours || 0), 0)
+    : 0
 
   return (
-    <>
-      <EcatsBanner />
-      <motion.div
-        className="h-full overflow-y-auto px-4 pt-3 pb-6 flex flex-col gap-2.5"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        {/* Weekly OT Alert — Pool RN only */}
-        <AnimatePresence>
-          {showOtWarning && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
-                style={{ background: isOtOverLimit ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isOtOverLimit ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-0.5">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <line x1="12" y1="9" x2="12" y2="13" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="1.8" strokeLinecap="round" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" stroke={isOtOverLimit ? '#EF4444' : '#F59E0B'} strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <div>
-                  <p className="text-[10px] font-display font-bold tracking-widest" style={{ color: isOtOverLimit ? '#EF4444' : '#F59E0B' }}>
-                    {isOtOverLimit ? 'OT THRESHOLD REACHED' : 'APPROACHING OT'}
-                  </p>
-                  <p className="text-[11px] font-body mt-0.5" style={{ color: textSecondary }}>
-                    {isOtOverLimit
-                      ? `Projected ${projectedWeekly.toFixed(1)} hrs this week — all hours beyond 40 are OT rate.`
-                      : `${weeklyHours.toFixed(1)} hrs logged this week. ${(40 - projectedWeekly).toFixed(1)} hrs until OT threshold.`}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+    <div className="p-4 space-y-4 max-w-md mx-auto pb-24">
+      {/* 1. Bento Card: Active Shift & Punch Action */}
+      <div className="bento-card rounded-3xl p-5 relative overflow-hidden">
+        {activeShift && (
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-500/15 rounded-full blur-2xl pointer-events-none" />
+        )}
+
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] font-sans-ui font-extrabold tracking-widest text-slate-400 uppercase">
+            {activeShift ? 'Active Shift Running' : 'Shift Tracker'}
+          </span>
+          {activeShift && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-[10px] font-sans-ui font-bold animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              LIVE eCAT SHIFT
+            </span>
           )}
-        </AnimatePresence>
+        </div>
 
-        {/* Schedule Conflict Warning */}
-        <AnimatePresence>
-          {hasConflict && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
+        <div className="my-4 text-center">
+          <p className="numeric-mono font-sans-ui font-black text-5xl tracking-tight text-white">
+            {activeShift ? formatTimer(elapsedSeconds) : '00:00:00'}
+          </p>
+          <p className="text-xs text-slate-400 mt-1 font-body">
+            {activeShift
+              ? `Started at ${new Date(activeShift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+              : 'Ready to punch shift into system'}
+          </p>
+        </div>
+
+        {!activeShift && (
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 mb-4">
+            <button
+              onClick={() => setShiftType('REG')}
+              className={`py-2.5 rounded-xl text-xs font-sans-ui font-bold transition-all ${
+                shiftType === 'REG'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 mt-0.5">
-                      <circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="1.8" />
-                      <line x1="12" y1="8" x2="12" y2="12" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" />
-                      <line x1="12" y1="16" x2="12.01" y2="16" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    <div>
-                      <p className="text-[10px] font-display font-bold tracking-widest" style={{ color: '#7C3AED' }}>SCHEDULE CONFLICT</p>
-                      <p className="text-[11px] font-body mt-0.5" style={{ color: textSecondary }}>
-                        Your schedule shows <span className="font-bold">{scheduleDay?.type?.toUpperCase()}</span> for this date. You're logging a <span className="font-bold">{shiftType}</span> shift. Confirm this is correct before saving.
-                      </p>
-                    </div>
-                  </div>
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setConflictDismissed(true)}
-                    className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(124,58,237,0.1)' }}>
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M18 6L6 18M6 6l12 12" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
-                    </svg>
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Shift Type Toggle */}
-        <motion.div
-          variants={tileVariants}
-          className="relative flex rounded-2xl p-1 flex-shrink-0"
-          style={{ background: toggleBg }}
-        >
-          <motion.div
-            className="absolute top-1 bottom-1 rounded-xl shadow-sm"
-            animate={{ left: pillLeft, width: pillWidth, background: accentColor }}
-            transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-          />
-          {SHIFT_TYPES.map((t) => (
-            <motion.button
-              key={t}
-              onClick={() => setShiftType(t)}
-              whileTap={{ scale: 0.97 }}
-              className="relative flex-1 py-3 z-10 text-[10px] font-display font-bold tracking-widest"
-              style={{ color: shiftType === t ? 'white' : isDark ? '#475569' : '#94A3B8' }}
+              REGULAR (REG)
+            </button>
+            <button
+              onClick={() => setShiftType('OT')}
+              className={`py-2.5 rounded-xl text-xs font-sans-ui font-bold transition-all ${
+                shiftType === 'OT'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              {SHIFT_LABELS[t]}
-            </motion.button>
-          ))}
-        </motion.div>
+              OVERTIME (OT)
+            </button>
+          </div>
+        )}
 
-        {/* Date */}
-        <motion.div variants={tileVariants} className="flex-shrink-0">
+        {activeShift ? (
           <motion.button
             whileTap={{ scale: 0.96 }}
-            onClick={() => setDatePickerOpen(true)}
-            className="w-full rounded-2xl px-4 py-3 text-left flex items-center justify-between"
-            style={{ background: surface, border: surfaceBorder }}
+            onClick={() => stopShift()}
+            className="w-full py-4 rounded-2xl font-sans-ui font-extrabold text-sm tracking-widest text-white bg-rose-600 shadow-lg shadow-rose-600/30 border border-rose-500/40"
           >
-            <div className="flex flex-col">
-              <span className="text-[8px] font-display font-bold tracking-widest mb-1" style={{ color: labelColor }}>DATE</span>
-              <span className="font-display font-bold text-sm leading-tight" style={{ color: textPrimary }}>{dateDisplay.date}</span>
-              <span className="text-[8px] font-display font-semibold tracking-widest mt-0.5" style={{ color: labelColor }}>{dateDisplay.weekday}</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="4" width="18" height="18" rx="2" stroke={accentColor} strokeWidth="1.8" />
-              <path d="M16 2v4M8 2v4M3 10h18" stroke={accentColor} strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+            END & PUNCH SHIFT LOG
           </motion.button>
-        </motion.div>
-
-        <AnimatePresence mode="wait">
-          {shiftType === 'CALLOUT' ? (
-            <motion.div
-              key="callout-form"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="flex flex-col gap-2.5"
-            >
-              <div
-                className="rounded-2xl px-4 py-4 flex flex-col overflow-hidden relative"
-                style={{ background: 'linear-gradient(135deg, #92400E 0%, #D97706 100%)' }}
-              >
-                <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full opacity-10 bg-white" />
-                <span className="text-[8px] font-display font-bold tracking-widest text-amber-200 z-10">CALLOUT</span>
-                <span className="text-2xl font-display font-bold text-white z-10 leading-tight mt-1">No Hours Recorded</span>
-                <span className="text-[10px] text-amber-200 mt-1 z-10 font-body">This day will be logged as a callout</span>
-              </div>
-
-              {isPoolRN ? (
-                <div className="rounded-2xl px-4 py-3" style={{ background: surface, border: surfaceBorder }}>
-                  <p className="text-[11px] font-body" style={{ color: textSecondary }}>Pool nurses do not have callout pay coverage.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: surface, border: surfaceBorder }}>
-                    <div>
-                      <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>AL DAYS REMAINING</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="w-6 h-6 rounded-lg flex items-center justify-center"
-                            style={{ background: i < alRemaining ? 'linear-gradient(135deg, #D97706, #F59E0B)' : isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }}>
-                            <span className="text-[10px] font-display font-bold" style={{ color: i < alRemaining ? 'white' : isDark ? '#334155' : '#CBD5E1' }}>{i + 1}</span>
-                          </div>
-                        ))}
-                        <span className="text-xs font-display font-bold" style={{ color: alRemaining === 0 ? '#EF4444' : textSecondary }}>
-                          {alRemaining === 0 ? 'NONE LEFT' : `${alRemaining} of 3`}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-display font-bold tracking-widest" style={{ color: labelColor }}>THIS YEAR</span>
-                  </div>
-                  <select
-                    value={calloutPayType}
-                    onChange={(e) => setCalloutPayType(e.target.value as CalloutPayType)}
-                    className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none transition"
-                    style={{ background: surface, border: surfaceBorder, color: selectColor }}
-                  >
-                    {(availablePayTypes as string[]).map((pt) => {
-                      const disabled = pt === 'AL Day' && alRemaining === 0
-                      return <option key={pt} value={pt} disabled={disabled}>{pt}{disabled ? ' (limit reached)' : ''}</option>
-                    })}
-                  </select>
-                </>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="shift-form"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="flex flex-col gap-2.5"
-            >
-              <div className="grid grid-cols-2 gap-2">
-                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setActivePicker('start')}
-                  className="rounded-2xl px-3 py-3 text-left flex flex-col justify-between"
-                  style={{ background: surface, border: surfaceBorder }}>
-                  <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>START</span>
-                  <span className="font-display font-bold text-base tabular-nums mt-1 leading-tight" style={{ color: '#2563EB' }}>{to12hr(start)}</span>
-                  <span className="text-[8px] font-display font-semibold tracking-widest mt-0.5" style={{ color: labelColor }}>TAP</span>
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setActivePicker('end')}
-                  className="rounded-2xl px-3 py-3 text-left flex flex-col justify-between"
-                  style={{ background: surface, border: surfaceBorder }}>
-                  <span className="text-[8px] font-display font-bold tracking-widest" style={{ color: labelColor }}>END</span>
-                  <span className="font-display font-bold text-base tabular-nums mt-1 leading-tight"
-                    style={{ color: shiftType === 'OT' ? '#DB2777' : '#2563EB' }}>{to12hr(end)}</span>
-                  <span className="text-[8px] font-display font-semibold tracking-widest mt-0.5" style={{ color: labelColor }}>TAP</span>
-                </motion.button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
-                  style={{ background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)' }}>
-                  <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full opacity-10 bg-white" />
-                  <span className="text-[8px] font-display font-bold tracking-widest text-blue-200 z-10">REGULAR</span>
-                  <span className="text-4xl font-display font-bold text-white tabular-nums z-10 leading-none mt-1">{calc.reg}</span>
-                  <span className="text-[9px] text-blue-200 mt-1 z-10 font-display font-semibold">HRS</span>
-                </div>
-                <div className="rounded-2xl px-4 py-3 flex flex-col overflow-hidden relative"
-                  style={{
-                    background: hasOT ? 'linear-gradient(135deg, #9D174D 0%, #EC4899 100%)' : isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
-                    border: !hasOT ? surfaceBorder : 'none',
-                  }}>
-                  <div className="absolute -right-3 -top-3 w-14 h-14 rounded-full opacity-10 bg-white" />
-                  <span className="text-[8px] font-display font-bold tracking-widest z-10"
-                    style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>OVERTIME</span>
-                  <span className="text-4xl font-display font-bold tabular-nums z-10 leading-none mt-1"
-                    style={{ color: hasOT ? 'white' : isDark ? '#1E293B' : '#CBD5E1' }}>{calc.ot}</span>
-                  <span className="text-[9px] mt-1 z-10 font-display font-semibold"
-                    style={{ color: hasOT ? '#FBCFE8' : isDark ? '#334155' : '#94A3B8' }}>HRS</span>
-                </div>
-              </div>
-
-              {isPoolRN && (
-                <div className="rounded-2xl px-4 py-2" style={{ background: isDark ? 'rgba(37,99,235,0.08)' : '#EFF6FF', border: '1px solid rgba(37,99,235,0.15)' }}>
-                  <p className="text-[10px] font-body" style={{ color: '#3B82F6' }}>
-                    Pool RN: OT applies after 40 hrs worked in the same week. {weeklyHours > 0 && `${weeklyHours.toFixed(1)} hrs logged this week.`}
-                  </p>
-                </div>
-              )}
-
-              <select value={reason} onChange={(e) => setReason(e.target.value)}
-                className="w-full rounded-2xl px-4 py-3 text-sm font-body font-semibold focus:outline-none transition"
-                style={{ background: surface, border: surfaceBorder, color: selectColor }}>
-                {SHIFT_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Action Buttons */}
-        <motion.div variants={tileVariants} className="flex flex-col gap-2 flex-shrink-0 mt-auto">
+        ) : (
           <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleSave}
-            className="w-full py-4 rounded-2xl font-display font-bold text-sm tracking-widest text-white relative overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${accentColor}dd, ${accentColor})`, boxShadow: `0 8px 24px ${accentColor}40` }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => startShift(shiftType, note)}
+            className="w-full py-4 rounded-2xl font-sans-ui font-extrabold text-sm tracking-widest text-white bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg shadow-orange-500/35 border border-orange-400/40"
           >
-            <AnimatePresence mode="wait">
-              {saved ? (
-                <motion.span key="saved" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="flex items-center justify-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12l5 5L20 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  SAVED TO LOG
-                </motion.span>
-              ) : (
-                <motion.span key="save" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
-                  SAVE TO LOG
-                </motion.span>
-              )}
-            </AnimatePresence>
+            PUNCH IN ({shiftType})
           </motion.button>
+        )}
+      </div>
 
-          <motion.button whileTap={{ scale: 0.97 }} onClick={handleDayOff}
-            className="w-full py-3 rounded-2xl font-display font-semibold text-xs tracking-widest transition"
-            style={{ background: surface, border: surfaceBorder, color: isDark ? '#475569' : '#94A3B8' }}>
-            MARK DAY OFF · NO WORK
-          </motion.button>
+      {/* 2. Bento Card: Pay Period Totals */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bento-card rounded-2xl p-4 border-l-4 border-l-blue-500">
+          <p className="text-[10px] font-sans-ui font-bold tracking-wider text-slate-400">REGULAR HOURS</p>
+          <p className="numeric-mono font-sans-ui font-extrabold text-2xl text-blue-400 mt-1">
+            {regHours.toFixed(1)} <span className="text-xs text-slate-500">hrs</span>
+          </p>
+          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-blue-500 h-full rounded-full"
+              style={{ width: `${Math.min(100, (regHours / 80) * 100)}%` }}
+            />
+          </div>
+        </div>
 
-          {entries.length > 0 && (() => {
-            const last = [...entries].sort((a: any, b: any) => b.date.localeCompare(a.date))[0]
-            return (
-              <motion.button whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  if (last.type !== 'CALLOUT' && last.reason !== 'OFF') {
-                    setShiftType(last.type)
-                    setStart(last.startTime)
-                    setEnd(last.endTime)
-                    setReason(last.reason)
-                  }
-                }}
-                className="w-full py-3 rounded-2xl font-display font-semibold text-xs tracking-widest transition flex items-center justify-center gap-2"
-                style={{ background: surface, border: surfaceBorder, color: isDark ? '#334155' : '#94A3B8' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                  <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-                DUPLICATE LAST ENTRY
-              </motion.button>
-            )
-          })()}
-        </motion.div>
-      </motion.div>
+        <div className="bento-card rounded-2xl p-4 border-l-4 border-l-emerald-500">
+          <p className="text-[10px] font-sans-ui font-bold tracking-wider text-slate-400">OVERTIME HOURS</p>
+          <p className="numeric-mono font-sans-ui font-extrabold text-2xl text-emerald-400 mt-1">
+            {otHours.toFixed(1)} <span className="text-xs text-slate-500">hrs</span>
+          </p>
+          <div className="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div
+              className="bg-emerald-500 h-full rounded-full"
+              style={{ width: `${Math.min(100, (otHours / 20) * 100)}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
-      <DatePickerSheet isOpen={datePickerOpen} value={date} onClose={() => setDatePickerOpen(false)} onConfirm={(d: string) => setDate(d)} />
-      <TimePickerSheet isOpen={activePicker === 'start'} title="Set Start Time" value={start} accentColor="#2563EB" onClose={() => setActivePicker(null)} onConfirm={(t: string) => setStart(t)} />
-      <TimePickerSheet isOpen={activePicker === 'end'} title="Set End Time" value={end} accentColor={shiftType === 'OT' ? '#DB2777' : '#2563EB'} onClose={() => setActivePicker(null)} onConfirm={(t: string) => setEnd(t)} />
-    </>
+      {/* 3. Bento Card: Floor Notes */}
+      <div className="bento-card rounded-2xl p-4 space-y-2">
+        <label className="text-[10px] font-sans-ui font-bold text-slate-400 tracking-wider block">
+          SHIFT MEMO / FLOOR NOTE
+        </label>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="e.g. Unit 3 North, Med Cart 2..."
+          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700/70 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+        />
+      </div>
+    </div>
   )
 }
