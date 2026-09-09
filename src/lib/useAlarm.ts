@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-export type ToneId = 'radar' | 'marimba' | 'chime' | 'beacon' | 'bell'
+export type ToneId = 'radar' | 'marimba' | 'chime' | 'beacon' | 'bell' | 'pulse' | 'buzz' | 'alert'
 export type RepeatMode = 'once' | 'daily' | 'weekdays' | 'weekends'
 
 export interface Alarm {
-  id: string
+  id: string | number
   label: string
   hour: number // 0-23
   minute: number // 0-59
