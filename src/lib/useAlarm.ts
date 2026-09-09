@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
+export type ToneId = 'radar' | 'marimba' | 'chime' | 'beacon' | 'bell'
+export type RepeatMode = 'once' | 'daily' | 'weekdays' | 'weekends'
+
 export interface Alarm {
   id: string
   label: string
@@ -7,6 +10,32 @@ export interface Alarm {
   minute: number // 0-59
   enabled: boolean
   days?: number[] // 0=Sun, 1=Mon...
+  tone?: ToneId
+  repeat?: RepeatMode
+  fired?: boolean
+}
+
+export function playTone(_tone: ToneId = 'radar') {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start()
+    osc.stop(ctx.currentTime + 0.4)
+  } catch (e) {
+    console.error('Audio play error:', e)
+  }
 }
 
 export function useAlarm() {
@@ -20,16 +49,14 @@ export function useAlarm() {
   })
 
   const [firing, setFiring] = useState<Alarm | null>(null)
-  const [snoozed, setSnoozed] = useState<Alarm | null>(null)
+  const [snoozedAlarm, setSnoozedAlarm] = useState<Alarm | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const oscIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // 1. Save alarms to local storage whenever modified
   useEffect(() => {
     localStorage.setItem('etally_alarms', JSON.stringify(alarms))
   }, [alarms])
 
-  // 2. Initialize and unlock Web Audio API on first user interaction
   useEffect(() => {
     const initAudio = () => {
       if (!audioCtxRef.current) {
@@ -51,7 +78,6 @@ export function useAlarm() {
     }
   }, [])
 
-  // 3. Audio Alarm Beep Synthesizer (No external mp3 files required)
   const startAlarmSound = useCallback(() => {
     if (!audioCtxRef.current) return
 
@@ -65,7 +91,7 @@ export function useAlarm() {
         const gain = ctx.createGain()
 
         osc.type = 'sine'
-        osc.frequency.setValueAtTime(880, ctx.currentTime) // High pitch A5 tone
+        osc.frequency.setValueAtTime(880, ctx.currentTime)
 
         gain.gain.setValueAtTime(0.3, ctx.currentTime)
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4)
@@ -97,7 +123,6 @@ export function useAlarm() {
     }
   }, [])
 
-  // 4. Background-resilient Timer Worker
   useEffect(() => {
     const workerCode = `
       let timer = null;
@@ -163,7 +188,7 @@ export function useAlarm() {
   const snoozeFiring = () => {
     stopAlarmSound()
     if (firing) {
-      setSnoozed(firing)
+      setSnoozedAlarm(firing)
       setFiring(null)
       setTimeout(() => {
         setFiring(firing)
@@ -173,19 +198,19 @@ export function useAlarm() {
   }
 
   const cancelSnooze = () => {
-    setSnoozed(null)
+    setSnoozedAlarm(null)
   }
 
-  const previewTone = () => {
-    startAlarmSound()
-    setTimeout(() => stopAlarmSound(), 1200)
+  const previewTone = (tone?: ToneId) => {
+    playTone(tone)
   }
 
   return {
     alarms,
     setAlarms,
     firing,
-    snoozed,
+    snoozed: Boolean(snoozedAlarm),
+    snoozedAlarm,
     previewTone,
     dismissFiring,
     snoozeFiring,

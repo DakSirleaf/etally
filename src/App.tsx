@@ -279,6 +279,65 @@ function MainApp() {
         )}
       </AnimatePresence>
 
+      {/* Alarm Firing Overlay */}
+      <AnimatePresence>
+        {firing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+            style={{ background: 'rgba(5,9,18,0.85)', backdropFilter: 'blur(12px)' }}
+          >
+            <div
+              className="rounded-3xl px-6 py-8 text-center w-full max-w-sm"
+              style={{ background: '#0F172A', border: '1px solid rgba(37,99,235,0.3)' }}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                className="text-5xl mb-4"
+              >
+                ⏰
+              </motion.div>
+              <p className="font-display font-extrabold text-3xl text-white numeric-mono mb-1">
+                {(() => {
+                  const h = firing.hour % 12 || 12
+                  const ap = firing.hour < 12 ? 'AM' : 'PM'
+                  return `${h}:${String(firing.minute).padStart(2, '0')} ${ap}`
+                })()}
+              </p>
+              <p className="font-sans-ui font-bold text-base text-blue-400 mb-6">{firing.label}</p>
+              <div className="flex gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={snoozeFiring}
+                  className="flex-1 py-4 rounded-2xl font-sans-ui font-bold text-xs tracking-widest"
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#94A3B8',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  SNOOZE 5 MIN
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={dismissFiring}
+                  className="flex-1 py-4 rounded-2xl font-sans-ui font-bold text-xs tracking-widest text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, #1D4ED8, #3B82F6)',
+                    boxShadow: '0 8px 24px rgba(37,99,235,0.4)',
+                  }}
+                >
+                  DISMISS
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AlarmModal
         isOpen={alarmOpen}
         onClose={() => setAlarmOpen(false)}
@@ -288,6 +347,65 @@ function MainApp() {
         cancelSnooze={cancelSnooze}
         previewTone={previewTone}
       />
+
+      {/* Developer Credit Sheet */}
+      <AnimatePresence>
+        {creditOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+              onClick={() => setCreditOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-slate-900 border-t border-slate-800 p-6 pb-8"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-1 rounded-full bg-slate-700" />
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-display font-black text-2xl text-white mb-3">
+                  AS
+                </div>
+                <p className="text-[10px] font-sans-ui font-bold tracking-widest text-slate-400 uppercase mb-1">
+                  ABOUT THE DEVELOPER
+                </p>
+                <h3 className="font-sans-ui font-extrabold text-xl text-white">A. Ace Sirleaf</h3>
+                <p className="text-xs text-blue-400 mt-0.5">Founder · Kola Technology Laboratory</p>
+                
+                <div className="h-px w-full bg-slate-800 my-4" />
+
+                <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+                  {['BSc Mathematics', 'BA Economics', 'BSN Nursing', 'MSN · PMHNP'].map((d) => (
+                    <span key={d} className="text-[9px] font-sans-ui font-bold tracking-wide px-2 py-1 rounded-lg bg-slate-800 text-slate-300">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-4">
+                  Psychiatric nursing professional and software developer building clinical tools that bridge direct patient care and modern technology.
+                </p>
+                <p className="text-[11px] font-sans-ui font-bold tracking-widest text-slate-500 italic mb-5">
+                  "Dare to build it yourself."
+                </p>
+
+                <button
+                  onClick={() => setCreditOpen(false)}
+                  className="w-full py-3.5 rounded-2xl bg-slate-800 border border-slate-700/60 font-sans-ui font-bold text-xs tracking-wider text-white"
+                >
+                  CLOSE
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <ReportModal
         isOpen={reportOpen}
