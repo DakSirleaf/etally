@@ -1,219 +1,194 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-export type ToneId = 'radar' | 'marimba' | 'chime' | 'beacon' | 'bell' | 'pulse' | 'buzz' | 'alert'
-export type RepeatMode = 'once' | 'daily' | 'weekdays' | 'weekends'
+export type RepeatMode = 'once' | 'daily' | 'weekdays'
+export type ToneId = 'pulse' | 'bell' | 'buzz' | 'chime' | 'alert'
 
 export interface Alarm {
-  id: string | number
+  id: number
+  hour: number
+  minute: number
   label: string
-  hour: number // 0-23
-  minute: number // 0-59
+  tone: ToneId
   enabled: boolean
-  days?: number[] // 0=Sun, 1=Mon...
-  tone?: ToneId
-  repeat?: RepeatMode
-  fired?: boolean
+  fired: boolean
+  repeat: RepeatMode
 }
 
-export function playTone(_tone: ToneId = 'radar') {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime)
-    gain.gain.setValueAtTime(0.3, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4)
-
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-
-    osc.start()
-    osc.stop(ctx.currentTime + 0.4)
-  } catch (e) {
-    console.error('Audio play error:', e)
+export function playTone(toneId: ToneId, ctx: AudioContext) {
+  const now = ctx.currentTime
+  switch (toneId) {
+    case 'pulse': {
+      for (let i = 0; i < 3; i++) {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination)
+        o.type = 'sine'; o.frequency.setValueAtTime(880, now + i * 0.4)
+        g.gain.setValueAtTime(0, now + i * 0.4)
+        g.gain.linearRampToValueAtTime(0.4, now + i * 0.4 + 0.05)
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.4 + 0.35)
+        o.start(now + i * 0.4); o.stop(now + i * 0.4 + 0.35)
+      }
+      break
+    }
+    case 'bell': {
+      ;[523, 659, 784, 1047].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination)
+        o.type = 'sine'; o.frequency.setValueAtTime(f, now + i * 0.25)
+        g.gain.setValueAtTime(0.3, now + i * 0.25)
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.25 + 1.2)
+        o.start(now + i * 0.25); o.stop(now + i * 0.25 + 1.2)
+      })
+      break
+    }
+    case 'buzz': {
+      for (let i = 0; i < 4; i++) {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination)
+        o.type = 'square'; o.frequency.setValueAtTime(120, now + i * 0.2)
+        g.gain.setValueAtTime(0.3, now + i * 0.2)
+        g.gain.setValueAtTime(0.3, now + i * 0.2 + 0.12)
+        g.gain.setValueAtTime(0, now + i * 0.2 + 0.13)
+        o.start(now + i * 0.2); o.stop(now + i * 0.2 + 0.14)
+      }
+      break
+    }
+    case 'chime': {
+      ;[523, 784, 659, 1047, 880].forEach((f, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination)
+        o.type = 'sine'; o.frequency.setValueAtTime(f, now + i * 0.18)
+        g.gain.setValueAtTime(0.25, now + i * 0.18)
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.8)
+        o.start(now + i * 0.18); o.stop(now + i * 0.18 + 0.8)
+      })
+      break
+    }
+    case 'alert': {
+      for (let i = 0; i < 6; i++) {
+        const o = ctx.createOscillator(); const g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination)
+        o.type = 'sawtooth'
+        o.frequency.setValueAtTime(i % 2 === 0 ? 1200 : 800, now + i * 0.15)
+        g.gain.setValueAtTime(0.25, now + i * 0.15)
+        g.gain.setValueAtTime(0, now + i * 0.15 + 0.12)
+        o.start(now + i * 0.15); o.stop(now + i * 0.15 + 0.13)
+      }
+      break
+    }
   }
 }
 
 export function useAlarm() {
-  const [alarms, setAlarms] = useState<Alarm[]>(() => {
-    try {
-      const saved = localStorage.getItem('etally_alarms')
-      return saved ? JSON.parse(saved) : []
-    } catch {
-      return []
-    }
-  })
-
+  const [alarms, setAlarms] = useState<Alarm[]>([])
   const [firing, setFiring] = useState<Alarm | null>(null)
-  const [snoozedAlarm, setSnoozedAlarm] = useState<Alarm | null>(null)
+  const [snoozed, setSnoozed] = useState(false)
   const audioCtxRef = useRef<AudioContext | null>(null)
-  const oscIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const fireIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const snoozeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Warm up AudioContext on first user interaction
   useEffect(() => {
-    localStorage.setItem('etally_alarms', JSON.stringify(alarms))
-  }, [alarms])
-
-  useEffect(() => {
-    const initAudio = () => {
+    const warmUp = () => {
       if (!audioCtxRef.current) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-        if (AudioCtx) {
-          audioCtxRef.current = new AudioCtx()
-        }
+        audioCtxRef.current = new AudioContext()
       }
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume()
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
       }
+      window.removeEventListener('touchstart', warmUp)
+      window.removeEventListener('mousedown', warmUp)
     }
-
-    window.addEventListener('touchstart', initAudio, { once: true })
-    window.addEventListener('click', initAudio, { once: true })
+    window.addEventListener('touchstart', warmUp, { passive: true })
+    window.addEventListener('mousedown', warmUp, { passive: true })
     return () => {
-      window.removeEventListener('touchstart', initAudio)
-      window.removeEventListener('click', initAudio)
+      window.removeEventListener('touchstart', warmUp)
+      window.removeEventListener('mousedown', warmUp)
     }
   }, [])
 
-  const startAlarmSound = useCallback(() => {
-    if (!audioCtxRef.current) return
-
-    const playBeep = () => {
-      try {
-        const ctx = audioCtxRef.current
-        if (!ctx) return
-        if (ctx.state === 'suspended') ctx.resume()
-
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(880, ctx.currentTime)
-
-        gain.gain.setValueAtTime(0.3, ctx.currentTime)
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4)
-
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-
-        osc.start()
-        osc.stop(ctx.currentTime + 0.4)
-      } catch (e) {
-        console.error('Audio play error:', e)
-      }
-    }
-
-    playBeep()
-    setTimeout(playBeep, 200)
-
-    if (oscIntervalRef.current) clearInterval(oscIntervalRef.current)
-    oscIntervalRef.current = setInterval(() => {
-      playBeep()
-      setTimeout(playBeep, 200)
-    }, 1000)
-  }, [])
-
-  const stopAlarmSound = useCallback(() => {
-    if (oscIntervalRef.current) {
-      clearInterval(oscIntervalRef.current)
-      oscIntervalRef.current = null
-    }
-  }, [])
-
+  // Alarm checker — runs at app level always
   useEffect(() => {
-    const workerCode = `
-      let timer = null;
-      self.onmessage = function(e) {
-        if (e.data === 'start') {
-          if (!timer) {
-            timer = setInterval(() => self.postMessage('tick'), 10000);
-          }
-        } else if (e.data === 'stop') {
-          if (timer) clearInterval(timer);
-          timer = null;
+    const check = setInterval(() => {
+      const n = new Date()
+      const dayOfWeek = n.getDay()
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5
+      setAlarms(prev => prev.map(a => {
+        if (!a.enabled || a.fired) return a
+        if (a.repeat === 'weekdays' && !isWeekday) return a
+        if (a.hour === n.getHours() && a.minute === n.getMinutes() && n.getSeconds() === 0) {
+          setFiring(a)
+          return { ...a, fired: a.repeat === 'once' }
         }
-      };
-    `
-    const blob = new Blob([workerCode], { type: 'application/javascript' })
-    const worker = new Worker(URL.createObjectURL(blob))
+        return a
+      }))
+    }, 1000)
+    return () => clearInterval(check)
+  }, [])
 
-    const checkAlarms = () => {
-      const now = new Date()
-      const curH = now.getHours()
-      const curM = now.getMinutes()
-      const curDay = now.getDay()
-
-      if (firing) return
-
-      for (const alarm of alarms) {
-        if (!alarm.enabled) continue
-
-        if (alarm.days && alarm.days.length > 0 && !alarm.days.includes(curDay)) {
-          continue
+  // Fire sound + vibration
+  useEffect(() => {
+    if (!firing) {
+      if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
+      return
+    }
+    const trigger = async () => {
+      try {
+        if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+          audioCtxRef.current = new AudioContext()
         }
-
-        if (alarm.hour === curH && alarm.minute === curM) {
-          setFiring(alarm)
-          startAlarmSound()
-
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(`⏰ eTally Alarm: ${alarm.label}`, {
-              body: `It is ${alarm.hour}:${String(alarm.minute).padStart(2, '0')}. Shift alert!`,
-              icon: '/pwa-192x192.png',
-            })
-          }
-          break
+        if (audioCtxRef.current.state === 'suspended') {
+          await audioCtxRef.current.resume()
         }
+        playTone(firing.tone, audioCtxRef.current)
+      } catch (e) {
+        console.warn('Audio play failed:', e)
       }
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300])
     }
+    trigger()
+    fireIntervalRef.current = setInterval(trigger, 4000)
+    return () => { if (fireIntervalRef.current) clearInterval(fireIntervalRef.current) }
+  }, [firing])
 
-    worker.onmessage = () => checkAlarms()
-    worker.postMessage('start')
-    checkAlarms()
-
-    return () => {
-      worker.postMessage('stop')
-      worker.terminate()
+  const previewTone = useCallback((toneId: ToneId) => {
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContext()
     }
-  }, [alarms, firing, startAlarmSound])
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume().then(() => playTone(toneId, audioCtxRef.current!))
+      return
+    }
+    playTone(toneId, audioCtxRef.current)
+  }, [])
 
   const dismissFiring = () => {
-    stopAlarmSound()
+    if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
+    if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current)
+    setSnoozed(false)
     setFiring(null)
   }
 
   const snoozeFiring = () => {
-    stopAlarmSound()
-    if (firing) {
-      setSnoozedAlarm(firing)
-      setFiring(null)
-      setTimeout(() => {
-        setFiring(firing)
-        startAlarmSound()
-      }, 5 * 60 * 1000)
-    }
+    const currentFiring = firing
+    if (fireIntervalRef.current) clearInterval(fireIntervalRef.current)
+    setSnoozed(true)
+    setFiring(null)
+    snoozeTimerRef.current = setTimeout(() => {
+      if (currentFiring) {
+        setSnoozed(false)
+        setFiring(currentFiring)
+      }
+    }, 5 * 60 * 1000)
   }
 
   const cancelSnooze = () => {
-    setSnoozedAlarm(null)
-  }
-
-  const previewTone = (tone?: ToneId) => {
-    playTone(tone)
+    setSnoozed(false)
+    if (snoozeTimerRef.current) clearTimeout(snoozeTimerRef.current)
   }
 
   return {
-    alarms,
-    setAlarms,
-    firing,
-    snoozed: Boolean(snoozedAlarm),
-    snoozedAlarm,
-    previewTone,
-    dismissFiring,
-    snoozeFiring,
-    cancelSnooze,
+    alarms, setAlarms,
+    firing, snoozed,
+    previewTone, dismissFiring, snoozeFiring, cancelSnooze,
   }
 }
